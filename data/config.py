@@ -128,6 +128,15 @@ dataset_base = Config({
     'label_map': None
 })
 
+MEDICAL_CLASSES = ('powerdrill')
+medical_dataset = dataset_base.copy({
+    'name' : 'medical_sample',
+    'train_images' : './data/data_sample/images/',
+    'train_info' : './data/data_sample/annotations/dataset_coco.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES
+})
+
 coco2014_dataset = dataset_base.copy({
     'name': 'COCO 2014',
     
@@ -657,8 +666,8 @@ yolact_base_config = coco_base_config.copy({
     'name': 'yolact_base',
 
     # Dataset stuff
-    'dataset': coco2017_dataset,
-    'num_classes': len(coco2017_dataset.class_names) + 1,
+    'dataset': medical_dataset,
+    'num_classes': 1,
 
     # Image Size
     'max_size': 550,
