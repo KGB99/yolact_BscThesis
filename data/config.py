@@ -129,12 +129,15 @@ dataset_base = Config({
 })
 
 MEDICAL_CLASSES = ('powerdrill')
-medical_dataset = dataset_base.copy({
-    'name' : 'medical_sample',
-    'train_images' : './data/data_sample/images/',
-    'train_info' : './data/data_sample/annotations/dataset_coco.json',
+medical_001000 = dataset_base.copy({
+    'name' : 'medical_001000',
+    'train_images' : '/cluster/scratch/kbirgi/mvpsp/train/rgb',
+    'train_info' : '/cluster/scratch/kbirgi/annotations/train_001000_coco.json',
+    'valid_images' : '/cluster/scratch/kbirgi/mvpsp/train/rgb',
+    'valid_info' : '/cluster/scratch/kbirgi/annotations/val_001000_coco.json',
     'has_gt' : True,
-    'class_names' : MEDICAL_CLASSES
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : { 1 : 1 }
 })
 
 coco2014_dataset = dataset_base.copy({
@@ -666,15 +669,15 @@ yolact_base_config = coco_base_config.copy({
     'name': 'yolact_base',
 
     # Dataset stuff
-    'dataset': medical_dataset,
-    'num_classes': 1,
+    'dataset': medical_001000,
+    'num_classes': len(medical_001000.class_names) + 1,
 
     # Image Size
     'max_size': 550,
     
     # Training params
     'lr_steps': (280000, 600000, 700000, 750000),
-    'max_iter': 800000,
+    'max_iter': 5000,
     
     # Backbone Settings
     'backbone': resnet101_backbone.copy({
@@ -711,6 +714,12 @@ yolact_base_config = coco_base_config.copy({
 
     'use_semantic_segmentation_loss': True,
 })
+
+medical_resnet101_config = yolact_base_config.copy({
+    'name' : 'medical_resnet101',
+    'max_iter' : 250
+    })
+
 
 yolact_im400_config = yolact_base_config.copy({
     'name': 'yolact_im400',
