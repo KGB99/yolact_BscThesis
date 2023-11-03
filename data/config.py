@@ -751,6 +751,14 @@ medical_001000_resnet50_config = yolact_base_config.copy({
     }),
 })
 
+medical_subset_resnet101_config = yolact_base_config.copy({
+    'name' : 'medical_resnet50',
+    # Dataset stuff
+    'dataset': medical_subset,
+    'num_classes': len(medical_subset.class_names) + 1,
+    'max_iter' : 500,
+})
+
 medical_subset_resnet50_config = yolact_base_config.copy({
     'name' : 'medical_resnet50',
     # Dataset stuff

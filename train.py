@@ -523,4 +523,4 @@ if __name__ == '__main__':
     train()
 
     #finish wandb, unsure if this is actually necessary
-    wandb.finish()
+    #wandb.finish()
