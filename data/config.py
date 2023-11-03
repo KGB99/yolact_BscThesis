@@ -140,6 +140,17 @@ medical_001000 = dataset_base.copy({
     'label_map' : { 1 : 1 }
 })
 
+medical_subset = dataset_base.copy({
+    'name' : 'medical_subset',
+    'train_images' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/images',
+    'train_info' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/annotations/dataset_coco.json',
+    'valid_images' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/images',
+    'valid_info' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/annotations/dataset_coco.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : { 1 : 1 }
+})
+
 coco2014_dataset = dataset_base.copy({
     'name': 'COCO 2014',
     
@@ -715,10 +726,47 @@ yolact_base_config = coco_base_config.copy({
     'use_semantic_segmentation_loss': True,
 })
 
-medical_resnet101_config = yolact_base_config.copy({
+medical_001000_resnet101_config = yolact_base_config.copy({
     'name' : 'medical_resnet101',
+    # Dataset stuff
+    'dataset': medical_001000,
+    'num_classes': len(medical_001000.class_names) + 1,
     'max_iter' : 250
     })
+
+medical_001000_resnet50_config = yolact_base_config.copy({
+    'name' : 'medical_resnet50',
+    # Dataset stuff
+    'dataset': medical_001000,
+    'num_classes': len(medical_001000.class_names) + 1,
+    'max_iter' : 250,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+medical_subset_resnet50_config = yolact_base_config.copy({
+    'name' : 'medical_resnet50',
+    # Dataset stuff
+    'dataset': medical_subset,
+    'num_classes': len(medical_subset.class_names) + 1,
+    'max_iter' : 250,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
 
 
 yolact_im400_config = yolact_base_config.copy({
