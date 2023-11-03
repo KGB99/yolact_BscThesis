@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH -n 1
-#SBATCH --gpus=2
+#SBATCH --gpus=1
 #SBATCH --mem-per-cpu=20G
-#SBATCH --time=3:00:00
+#SBATCH --time=4:00:00
 
 module load gcc/8.2.0 python_gpu/3.11.2
-python3 train.py --batch_size=16 --num_workers=2 --config=medical_resnet101_config
-# we take batch size 16 because we use 2 GPUS and batch_size=8*(num_GPUS)
+python3 train.py --batch_size=8 --num_workers=1 --config=medical_resnet101_config
+# batch_size=8*(num_GPUS)
