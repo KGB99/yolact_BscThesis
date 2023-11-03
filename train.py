@@ -130,6 +130,18 @@ if torch.cuda.is_available():
 else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
+# initialize wandb
+wandb.init(
+    project = 'BscThesis',
+
+    config= {
+        'learning-rate' : cfg.lr,
+        'architecture' : 'yolact_resnet50',
+        'dataset' : 'trial-subset',
+        'iterations' : cfg.max_iter, 
+    }
+)
+
 class NetLoss(nn.Module):
     """
     A wrapper for running the network and computing the loss
@@ -311,6 +323,8 @@ def train():
                 losses = { k: (v).mean() for k,v in losses.items() } # Mean here because Dataparallel
                 loss = sum([losses[k] for k in losses])
                 
+                
+
                 # no_inf_mean removes some components from the loss, so make sure to backward through all of it
                 # all_loss = sum([v.mean() for v in losses.values()])
 
@@ -353,6 +367,9 @@ def train():
 
                     log.log_gpu_stats = args.log_gpu
                 
+                # use wandb to track loss
+                wandb.log({"loss" : round(loss.item(),5)})
+
                 iteration += 1
 
                 if iteration % args.save_interval == 0 and iteration != args.start_iter:
@@ -504,3 +521,6 @@ def setup_eval():
 
 if __name__ == '__main__':
     train()
+
+    #finish wandb, unsure if this is actually necessary
+    wandb.finish()

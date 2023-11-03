@@ -756,7 +756,7 @@ medical_subset_resnet50_config = yolact_base_config.copy({
     # Dataset stuff
     'dataset': medical_subset,
     'num_classes': len(medical_subset.class_names) + 1,
-    'max_iter' : 250,
+    'max_iter' : 500,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
         
