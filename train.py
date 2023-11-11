@@ -520,7 +520,12 @@ def setup_eval():
     eval_script.parse_args(['--no_bar', '--max_images='+str(args.validation_size)])
 
 if __name__ == '__main__':
-    train()
-
-    #finish wandb, unsure if this is actually necessary
-    #wandb.finish()
+    try:
+        train()
+    except:
+        print("ERROR!")
+    else: 
+        print("OK!")
+    finally:    
+        #finish wandb, unsure if this is actually necessary
+        wandb.finish()

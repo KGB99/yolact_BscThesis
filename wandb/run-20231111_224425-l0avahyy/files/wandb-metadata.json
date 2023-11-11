@@ -1,0 +1,252 @@
+{
+    "os": "Linux-3.10.0-1160.95.1.el7.x86_64-x86_64-with-glibc2.17",
+    "python": "3.11.2",
+    "heartbeatAt": "2023-11-11T21:44:26.312422",
+    "startedAt": "2023-11-11T21:44:25.213178",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--batch_size=8",
+        "--num_workers=1",
+        "--config=medical_subset_resnet50_config"
+    ],
+    "state": "running",
+    "program": "/cluster/home/kbirgi/yolact_BscThesis/train.py",
+    "codePathLocal": "train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "git@github.com:KGB99/yolact_BscThesis.git",
+        "commit": "ba7ef10401c9316eb843cf67a6676856f009ff1c"
+    },
+    "email": "kbirgi@gmail.com",
+    "root": "/cluster/home/kbirgi/yolact_BscThesis",
+    "host": "eu-lo-s4-066",
+    "username": "kbirgi",
+    "executable": "/cluster/apps/nss/gcc-8.2.0/python/3.11.2/x86_64/bin/python3",
+    "cpu_count": 20,
+    "cpu_count_logical": 40,
+    "cpu_freq": {
+        "current": 1764.4978499999997,
+        "min": 1200.0,
+        "max": 3100.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2199.865,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2745.971,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2198.657,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1630.126,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1444.824,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2465.332,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2565.502,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1988.781,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1570.373,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1440.661,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1274.291,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1202.05,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 3074.011,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.708,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.439,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.305,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1286.779,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.439,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1199.902,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.305,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2199.865,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 3047.021,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2200.402,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1451.94,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1391.516,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2698.706,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2594.909,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2562.011,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1502.294,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 2709.179,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1347.338,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.036,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 3099.389,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1219.372,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.976,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.976,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1255.761,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.842,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.305,
+            "min": 1200.0,
+            "max": 3100.0
+        },
+        {
+            "current": 1200.036,
+            "min": 1200.0,
+            "max": 3100.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 10.0,
+            "used": 4.601734161376953
+        }
+    },
+    "gpu": "NVIDIA GeForce GTX 1080 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1080 Ti",
+            "memory_total": 11811160064
+        }
+    ],
+    "memory": {
+        "total": 249.56156539916992
+    }
+}
