@@ -142,10 +142,10 @@ medical_001000 = dataset_base.copy({
 
 medical_subset = dataset_base.copy({
     'name' : 'medical_subset',
-    'train_images' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/images',
-    'train_info' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/annotations/dataset_coco.json',
-    'valid_images' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/images',
-    'valid_info' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/annotations/dataset_coco.json',
+    'train_images' : '/cluster/scratch/kbirgi/mvpsp/',
+    'train_info' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/annotations/train_all_coco.json',
+    'valid_images' : '/cluster/scratch/kbirgi/mvpsp/',
+    'valid_info' : '/cluster/home/kbirgi/yolact_BscThesis/data/data_sample/annotations/val_all_coco.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : { 1 : 1 }
