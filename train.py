@@ -131,16 +131,16 @@ else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
 # initialize wandb
-#wandb.init(
-#    project = 'BscThesis',
-#
-#    config= {
-#        'learning-rate' : cfg.lr,
-#        'architecture' : 'yolact_resnet50',
-#        'dataset' : 'trial-subset',
-#        'iterations' : cfg.max_iter, 
-#    }
-#)
+wandb.init(
+    project = 'BscThesis',
+
+    config= {
+        'learning-rate' : cfg.lr,
+        'architecture' : 'yolact_resnet50',
+        'dataset' : 'trial-subset',
+        'iterations' : cfg.max_iter, 
+    }
+)
 
 class NetLoss(nn.Module):
     """
@@ -396,8 +396,8 @@ def train():
                             os.remove(latest)
             
             # use wandb to track loss, we do the average loss per epoch, where we divide by batches per epoch
-            #avg_loss = avg_loss / epoch_size
-            #wandb.log({"loss" : round(avg_loss,5)}, commit=False)
+            avg_loss = avg_loss / epoch_size
+            wandb.log({"loss" : round(avg_loss,5)}, commit=False)
 
             # for calculating the validation loss:
             if epoch > 0:
@@ -595,12 +595,12 @@ class ScatterWrapper:
         return out_args
 
 if __name__ == '__main__':
-    #try:
-    train()
-    #except:
-        #print("ERROR!")
-    #else: 
-        #print("OK!")
-    #finally:    
+    try:
+        train()
+    except:
+        print("ERROR!")
+    else: 
+        print("OK!")
+    finally:    
         #finish wandb, unsure if this is actually necessary
-        #wandb.finish()
+        wandb.finish()
