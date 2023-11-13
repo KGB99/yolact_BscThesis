@@ -134,7 +134,7 @@ medical_00100x = dataset_base.copy({
     'train_images' : '/cluster/scratch/kbirgi/mvpsp',
     'train_info' : '/cluster/home/kbirgi/annotations/train_00100x_coco.json',
     'valid_images' : '/cluster/scratch/kbirgi/mvpsp',
-    'valid_info' : '/cluster/scratch/kbirgi/annotations/val_00100x_coco.json',
+    'valid_info' : '/cluster/home/kbirgi/annotations/val_00100x_coco.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : { 1 : 1 }
@@ -145,7 +145,7 @@ medical_all = dataset_base.copy({
     'train_images' : '/cluster/scratch/kbirgi/mvpsp',
     'train_info' : '/cluster/home/kbirgi/annotations/train_all_coco.json',
     'valid_images' : '/cluster/scratch/kbirgi/mvpsp',
-    'valid_info' : '/cluster/scratch/kbirgi/annotations/val_all_coco.json',
+    'valid_info' : '/cluster/home/kbirgi/annotations/val_all_coco.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : { 1 : 1 }

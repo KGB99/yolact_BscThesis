@@ -1,0 +1,18 @@
+loading annotations into memory...
+Done (t=45.76s)
+creating index...
+index created!
+loading annotations into memory...
+Traceback (most recent call last):
+  File "/cluster/home/kbirgi/yolact_BscThesis/train.py", line 599, in <module>
+    train()
+  File "/cluster/home/kbirgi/yolact_BscThesis/train.py", line 195, in train
+    val_dataset = COCODetection(image_path=cfg.dataset.valid_images,
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cluster/home/kbirgi/yolact_BscThesis/data/coco.py", line 74, in __init__
+    self.coco = COCO(info_file)
+                ^^^^^^^^^^^^^^^
+  File "/cluster/apps/nss/gcc-8.2.0/python/3.11.2/x86_64/lib64/python3.11/site-packages/pycocotools/coco.py", line 81, in __init__
+    with open(annotation_file, 'r') as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/cluster/scratch/kbirgi/annotations/val_00100x_coco.json'

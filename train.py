@@ -595,12 +595,12 @@ class ScatterWrapper:
         return out_args
 
 if __name__ == '__main__':
-    try:
-        train()
-    except:
-        print("ERROR!")
-    else: 
-        print("OK!")
-    finally:    
+    #try:
+    train()
+    #except:
+        #print("ERROR!")
+    #else: 
+        #print("OK!")
+    #finally:    
         #finish wandb, unsure if this is actually necessary
         #wandb.finish()
