@@ -131,16 +131,16 @@ else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
 # initialize wandb
-wandb.init(
-    project = 'BscThesis',
-
-    config= {
-        'learning-rate' : cfg.lr,
-        'architecture' : 'yolact_resnet50',
-        'dataset' : 'trial-subset',
-        'iterations' : cfg.max_iter, 
-    }
-)
+#wandb.init(
+#    project = 'BscThesis',
+#
+#    config= {
+#        'learning-rate' : cfg.lr,
+#        'architecture' : 'yolact_resnet50',
+#        'dataset' : 'trial-subset',
+#        'iterations' : cfg.max_iter, 
+#    }
+#)
 
 class NetLoss(nn.Module):
     """
@@ -279,7 +279,7 @@ def train():
     loss_avgs  = { k: MovingAverage(100) for k in loss_types }
 
     #create a dict for the val_loss
-    val_loss_avgs = { k: MovingAverage(100) for k in loss_types}
+    #val_loss_avgs = { k: MovingAverage(100) for k in loss_types}
 
     print('Begin training!')
     print()
@@ -396,8 +396,8 @@ def train():
                             os.remove(latest)
             
             # use wandb to track loss, we do the average loss per epoch, where we divide by batches per epoch
-            avg_loss = avg_loss / epoch_size
-            wandb.log({"loss" : round(avg_loss,5)}, commit=False)
+            #avg_loss = avg_loss / epoch_size
+            #wandb.log({"loss" : round(avg_loss,5)}, commit=False)
 
             # for calculating the validation loss:
             if epoch > 0:
@@ -540,7 +540,7 @@ def compute_validation_loss(net, data_loader, val_dataset):
             loss = sum([losses[k] for k in losses]) 
             avg_loss += loss.item()
         avg_loss = avg_loss / epoch_size
-        wandb.log({"validation-loss" : avg_loss})
+        #wandb.log({"validation-loss" : avg_loss})
         loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
         print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
 
@@ -603,4 +603,4 @@ if __name__ == '__main__':
         print("OK!")
     finally:    
         #finish wandb, unsure if this is actually necessary
-        wandb.finish()
+        #wandb.finish()
