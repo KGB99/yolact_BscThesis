@@ -131,16 +131,16 @@ else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
 # initialize wandb
-wandb.init(
-    project = 'BscThesis',
-
-    config= {
-        'learning-rate' : cfg.lr,
-        'architecture' : 'yolact_resnet50',
-        'dataset' : 'medical-dataset',
-        'iterations' : cfg.max_iter, 
-    }
-)
+#wandb.init(
+#    project = 'BscThesis',
+#
+#    config= {
+#        'learning-rate' : cfg.lr,
+#        'architecture' : 'yolact_resnet50',
+#        'dataset' : 'trial-subset',
+#        'iterations' : cfg.max_iter, 
+#    }
+#)
 
 class NetLoss(nn.Module):
     """
@@ -265,6 +265,12 @@ def train():
                                   pin_memory=True,
                                   generator=torch.Generator(device='cuda'))
     
+    # need a second data loader for the validation set
+    val_data_loader = data.DataLoader(val_dataset, args.batch_size,
+                                      num_workers=args.num_workers,
+                                      shuffle=True, collate_fn=detection_collate,
+                                      pin_memory=True,
+                                      generator=torch.Generator(device='cuda'))
     
     save_path = lambda epoch, iteration: SavePath(cfg.name, epoch, iteration).get_path(root=args.save_folder)
     time_avg = MovingAverage()
@@ -272,11 +278,17 @@ def train():
     global loss_types # Forms the print order
     loss_avgs  = { k: MovingAverage(100) for k in loss_types }
 
+    #create a dict for the val_loss
+    #val_loss_avgs = { k: MovingAverage(100) for k in loss_types}
+
     print('Begin training!')
     print()
     # try-except so you can use ctrl+c to save early and stop training
     try:
         for epoch in range(num_epochs):
+
+            avg_loss = 0
+
             # Resume from start_iter
             if (epoch+1)*epoch_size < iteration:
                 continue
@@ -323,6 +335,8 @@ def train():
                 losses = { k: (v).mean() for k,v in losses.items() } # Mean here because Dataparallel
                 loss = sum([losses[k] for k in losses])
                 
+                #avg loss for wandb?
+                avg_loss += loss.item()
                 
 
                 # no_inf_mean removes some components from the loss, so make sure to backward through all of it
@@ -366,9 +380,6 @@ def train():
                         lr=round(cur_lr, 10), elapsed=elapsed)
 
                     log.log_gpu_stats = args.log_gpu
-                
-                # use wandb to track loss
-                wandb.log({"loss" : round(loss.item(),5)})
 
                 iteration += 1
 
@@ -384,6 +395,15 @@ def train():
                             print('Deleting old save...')
                             os.remove(latest)
             
+            # use wandb to track loss, we do the average loss per epoch, where we divide by batches per epoch
+            #avg_loss = avg_loss / epoch_size
+            #wandb.log({"loss" : round(avg_loss,5)}, commit=False)
+
+            # for calculating the validation loss:
+            if epoch > 0:
+                print('Calculating validation losses, this may take a while...')
+                compute_validation_loss(yolact_net, val_data_loader, val_dataset)
+
             # This is done per epoch
             if args.validation_epoch > 0:
                 if epoch % args.validation_epoch == 0 and epoch > 0:
@@ -468,38 +488,61 @@ def no_inf_mean(x:torch.Tensor):
     else:
         return x.mean()
 
-def compute_validation_loss(net, data_loader, criterion):
+#def compute_validation_loss(net, data_loader, criterion):
+#    global loss_types
+#
+#    with torch.no_grad():
+#        losses = {}
+#        
+#        # Don't switch to eval mode because we want to get losses
+#        iterations = 0
+#        for datum in data_loader:
+#            images, targets, masks, num_crowds = prepare_data(datum)
+#            out = net(images)
+#
+#            wrapper = ScatterWrapper(targets, masks, num_crowds)
+#            _losses = criterion(out, wrapper, wrapper.make_mask())
+#            
+#            for k, v in _losses.items():
+#                v = v.mean().item()
+#                if k in losses:
+#                    losses[k] += v
+#                else:
+#                    losses[k] = v
+#
+#            iterations += 1
+#            if args.validation_size <= iterations * args.batch_size:
+#break
+#        
+#        for k in losses:
+#            losses[k] /= iterations
+#            
+#        
+#        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
+#        wandb.log({"validation-loss" : loss_labels})
+#        print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+
+def compute_validation_loss(net, data_loader, val_dataset):
+    #Calculates the loss on the validation dataset.
+    print('Calculating validaton losses, this may take a while...')
+
     global loss_types
 
     with torch.no_grad():
         losses = {}
-        
-        # Don't switch to eval mode because we want to get losses
-        iterations = 0
+        epoch_size = len(val_dataset) // data_loader.batch_size
+        avg_loss = 0
+        # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
         for datum in data_loader:
-            images, targets, masks, num_crowds = prepare_data(datum)
-            out = net(images)
-
-            wrapper = ScatterWrapper(targets, masks, num_crowds)
-            _losses = criterion(out, wrapper, wrapper.make_mask())
+            losses = net.forward(datum)
             
-            for k, v in _losses.items():
-                v = v.mean().item()
-                if k in losses:
-                    losses[k] += v
-                else:
-                    losses[k] = v
-
-            iterations += 1
-            if args.validation_size <= iterations * args.batch_size:
-                break
-        
-        for k in losses:
-            losses[k] /= iterations
-            
-        
+            losses = { k: (v).mean() for k,v in losses.items() }
+            loss = sum([losses[k] for k in losses]) 
+            avg_loss += loss.item()
+        avg_loss = avg_loss / epoch_size
+        #wandb.log({"validation-loss" : avg_loss})
         loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
-        print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+        print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
 
 def compute_validation_map(epoch, iteration, yolact_net, dataset, log:Log=None):
     with torch.no_grad():
@@ -519,6 +562,38 @@ def compute_validation_map(epoch, iteration, yolact_net, dataset, log:Log=None):
 def setup_eval():
     eval_script.parse_args(['--no_bar', '--max_images='+str(args.validation_size)])
 
+# This is the old class of the scatterwrapper, might need to change this later on????
+class ScatterWrapper:
+    """ Input is any number of lists. This will preserve them through a dataparallel scatter. """
+
+    def __init__(self, *args):
+        for arg in args:
+            if not isinstance(arg, list):
+                print('Warning: ScatterWrapper got input of non-list type.')
+        self.args = args
+        self.batch_size = len(args[0])
+
+    def make_mask(self):
+        out = torch.Tensor(list(range(self.batch_size))).long()
+        if args.cuda:
+            return out.cuda()
+        else:
+            return out
+
+    def get_args(self, mask):
+        device = mask.device
+        mask = [int(x) for x in mask]
+        out_args = [[] for _ in self.args]
+
+        for out, arg in zip(out_args, self.args):
+            for idx in mask:
+                x = arg[idx]
+                if isinstance(x, torch.Tensor):
+                    x = x.to(device)
+                out.append(x)
+
+        return out_args
+
 if __name__ == '__main__':
     try:
         train()
@@ -528,4 +603,4 @@ if __name__ == '__main__':
         print("OK!")
     finally:    
         #finish wandb, unsure if this is actually necessary
-        wandb.finish()
+        #wandb.finish()
