@@ -140,6 +140,17 @@ medical_00100x = dataset_base.copy({
     'label_map' : { 1 : 1 }
 })
 
+medical_all_ssd = dataset_base.copy({
+    'name' : 'medical_all_ssd',
+    'train_images' : '/cluster/scratch/kbirgi/mvpsp',
+    'train_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD/train_annotations.json',
+    'valid_images' : '/cluster/scratch/kbirgi/mvpsp',
+    'valid_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD/val_annotations.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : None
+})
+
 medical_all = dataset_base.copy({
     'name' : 'medical_all',
     'train_images' : '/cluster/scratch/kbirgi/mvpsp',
@@ -751,6 +762,23 @@ medical_00100x_resnet50_config = yolact_base_config.copy({
     'dataset': medical_00100x,
     'num_classes': len(medical_00100x.class_names) + 1,
     'max_iter' : 250,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+medical_ssd_resnet50_config = yolact_base_config.copy({
+    'name' : 'medical_ssd_resnet50',
+    # Dataset stuff
+    'dataset': medical_all_ssd,
+    'num_classes': len(medical_all_ssd.class_names) + 1,
+    'max_iter' : 5000,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
         
