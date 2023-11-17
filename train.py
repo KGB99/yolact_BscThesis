@@ -130,18 +130,6 @@ if torch.cuda.is_available():
 else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
-# initialize wandb
-wandb.init(
-    project = 'BscThesis',
-
-    config= {
-        'learning-rate' : cfg.lr,
-        'architecture' : 'yolact_resnet50',
-        'dataset' : 'trial-subset',
-        'iterations' : cfg.max_iter, 
-    }
-)
-
 class NetLoss(nn.Module):
     """
     A wrapper for running the network and computing the loss
@@ -254,8 +242,10 @@ def train():
     last_time = time.time()
 
     epoch_size = len(dataset) // args.batch_size
-    num_epochs = math.ceil(cfg.max_iter / epoch_size)
-    
+    num_epochs = 5#math.ceil(cfg.max_iter / epoch_size)
+    print("size per epoch: " + str(epoch_size))
+    print("number of epochs: " + str(num_epochs))
+
     # Which learning rate adjustment step are we on? lr' = lr * gamma ^ step_index
     step_index = 0
 
@@ -286,7 +276,7 @@ def train():
     # try-except so you can use ctrl+c to save early and stop training
     try:
         for epoch in range(num_epochs):
-
+            #do I need this??
             avg_loss = 0
 
             # Resume from start_iter
@@ -294,6 +284,7 @@ def train():
                 continue
             
             for datum in data_loader:
+
                 # Stop if we've reached an epoch if we're resuming from start_iter
                 if iteration == (epoch+1)*epoch_size:
                     break
@@ -365,8 +356,9 @@ def train():
                     total = sum([loss_avgs[k].get_avg() for k in losses])
                     loss_labels = sum([[k, loss_avgs[k].get_avg()] for k in loss_types if k in losses], [])
                     
-                    print(('[%3d] %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f')
+                    print(('Epoch: %3d | Iteration %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f')
                             % tuple([epoch, iteration] + loss_labels + [total, eta_str, elapsed]), flush=True)
+                    
 
                 if args.log:
                     precision = 5
@@ -380,6 +372,9 @@ def train():
                         lr=round(cur_lr, 10), elapsed=elapsed)
 
                     log.log_gpu_stats = args.log_gpu
+                
+                #also compute validation loss
+                compute_validation_loss(yolact_net, val_data_loader, log)
 
                 iteration += 1
 
@@ -394,16 +389,10 @@ def train():
                         if args.keep_latest_interval <= 0 or iteration % args.keep_latest_interval != args.save_interval:
                             print('Deleting old save...')
                             os.remove(latest)
+
+
+            #if epoch > 0:
             
-            # use wandb to track loss, we do the average loss per epoch, where we divide by batches per epoch
-            avg_loss = avg_loss / epoch_size
-            wandb.log({"loss" : round(avg_loss,5)}, commit=False)
-
-            # for calculating the validation loss:
-            if epoch > 0:
-                print('Calculating validation losses, this may take a while...')
-                compute_validation_loss(yolact_net, val_data_loader, val_dataset)
-
             # This is done per epoch
             if args.validation_epoch > 0:
                 if epoch % args.validation_epoch == 0 and epoch > 0:
@@ -422,6 +411,39 @@ def train():
         exit()
 
     yolact_net.save_weights(save_path(epoch, iteration))
+
+def compute_validation_loss(net, data_loader, log : Log):
+    #Calculates the loss on the validation dataset.
+    print('Calculating validaton losses, this may take a while...')
+
+    global loss_types
+
+    with torch.no_grad():
+        losses = {}
+        
+        # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
+        for datum in data_loader:
+            losses = net(datum)
+            
+            losses = { k: (v).mean() for k,v in losses.items() }
+            print(losses)
+            loss = sum([losses[k] for k in losses]) 
+            print(loss.item())
+        
+        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
+        print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+        #if args.log:
+        #    log.log('val', )
+        #if args.log:
+        #            precision = 5
+        #            loss_info = {k: round(losses[k].item(), precision) for k in losses}
+        #            loss_info['T'] = round(loss.item(), precision)
+
+                    #if args.log_gpu:
+                    #    log.log_gpu_stats = (iteration % 10 == 0) # nvidia-smi is sloooow
+                        
+                    #log.log('train', loss=loss_info, epoch=epoch, iter=iteration,
+                    #    lr=round(cur_lr, 10), elapsed=elapsed)
 
 
 def set_lr(optimizer, new_lr):
@@ -487,7 +509,8 @@ def no_inf_mean(x:torch.Tensor):
         return sum(no_inf) / len(no_inf)
     else:
         return x.mean()
-
+    
+#this is the old compute_validation loss class from dbolya
 #def compute_validation_loss(net, data_loader, criterion):
 #    global loss_types
 #
@@ -522,28 +545,6 @@ def no_inf_mean(x:torch.Tensor):
 #        wandb.log({"validation-loss" : loss_labels})
 #        print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
 
-def compute_validation_loss(net, data_loader, val_dataset):
-    #Calculates the loss on the validation dataset.
-    print('Calculating validaton losses, this may take a while...')
-
-    global loss_types
-
-    with torch.no_grad():
-        losses = {}
-        epoch_size = len(val_dataset) // data_loader.batch_size
-        avg_loss = 0
-        # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
-        for datum in data_loader:
-            losses = net.forward(datum)
-            
-            losses = { k: (v).mean() for k,v in losses.items() }
-            loss = sum([losses[k] for k in losses]) 
-            avg_loss += loss.item()
-        avg_loss = avg_loss / epoch_size
-        #wandb.log({"validation-loss" : avg_loss})
-        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
-        print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
-
 def compute_validation_map(epoch, iteration, yolact_net, dataset, log:Log=None):
     with torch.no_grad():
         yolact_net.eval()
@@ -562,45 +563,29 @@ def compute_validation_map(epoch, iteration, yolact_net, dataset, log:Log=None):
 def setup_eval():
     eval_script.parse_args(['--no_bar', '--max_images='+str(args.validation_size)])
 
-# This is the old class of the scatterwrapper, might need to change this later on????
-class ScatterWrapper:
-    """ Input is any number of lists. This will preserve them through a dataparallel scatter. """
-
-    def __init__(self, *args):
-        for arg in args:
-            if not isinstance(arg, list):
-                print('Warning: ScatterWrapper got input of non-list type.')
-        self.args = args
-        self.batch_size = len(args[0])
-
-    def make_mask(self):
-        out = torch.Tensor(list(range(self.batch_size))).long()
-        if args.cuda:
-            return out.cuda()
-        else:
-            return out
-
-    def get_args(self, mask):
-        device = mask.device
-        mask = [int(x) for x in mask]
-        out_args = [[] for _ in self.args]
-
-        for out, arg in zip(out_args, self.args):
-            for idx in mask:
-                x = arg[idx]
-                if isinstance(x, torch.Tensor):
-                    x = x.to(device)
-                out.append(x)
-
-        return out_args
-
 if __name__ == '__main__':
+    train()
+    exit()
     try:
-        train()
+        # initialize wandb
+        WANDB = False
+        if WANDB:
+            wandb.init(
+                project = 'BscThesis',
+
+                config= {
+                    'learning-rate' : cfg.lr,
+                    'architecture' : 'yolact_resnet50_ssd_trial',
+                    'dataset' : 'trial-subset',
+                    'iterations' : cfg.max_iter, 
+                }
+            )
+        
     except:
         print("ERROR!")
     else: 
         print("OK!")
     finally:    
         #finish wandb, unsure if this is actually necessary
-        wandb.finish()
+        if WANDB:
+            wandb.finish()
