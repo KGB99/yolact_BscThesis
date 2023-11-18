@@ -61,7 +61,7 @@ parser.add_argument('--save_interval', default=10000, type=int,
                     help='The number of iterations between saving the model.')
 parser.add_argument('--validation_size', default=5000, type=int,
                     help='The number of images to use for validation.')
-parser.add_argument('--validation_epoch', default=2, type=int,
+parser.add_argument('--validation_epoch', default=1, type=int,
                     help='Output validation information every n iterations. If -1, do no validation.')
 parser.add_argument('--keep_latest', dest='keep_latest', action='store_true',
                     help='Only keep the latest checkpoint instead of each one.')
@@ -260,7 +260,7 @@ def train():
     # this is because during training the SSDAugmentation also randomly flips,etc... images for robustness
     val_data_loader = data.DataLoader(val_dataset, args.batch_size,
                                       num_workers=args.num_workers,
-                                      shuffle=True, collate_fn=detection_collate,
+                                      shuffle=False, collate_fn=detection_collate,
                                       pin_memory=True,
                                       generator=torch.Generator(device='cuda'))
     
@@ -285,8 +285,8 @@ def train():
             if (epoch+1)*epoch_size < iteration:
                 continue
 
-            print("DEBUGGING VAL LOSS")
-            compute_validation_loss(yolact_net, val_data_loader, log)
+            #print("DEBUGGING VAL LOSS")
+            #compute_validation_loss(net, val_data_loader, log)
             
             for datum in data_loader:
 
@@ -332,7 +332,7 @@ def train():
                 loss = sum([losses[k] for k in losses])
                 
                 #avg loss for wandb?
-                avg_loss += loss.item()
+                #avg_loss += loss.item()
                 
 
                 # no_inf_mean removes some components from the loss, so make sure to backward through all of it
@@ -420,6 +420,29 @@ def train():
 
     yolact_net.save_weights(save_path(epoch, iteration))
 
+"""
+def compute_validation_loss(net, dataset, log : Log):
+    #Calculates the loss on the validation dataset.
+    print('Calculating validaton losses, this may take a while...')
+    global loss_types
+    with torch.no_grad():
+        net.eval()
+        losses = {}
+        dataset_indices = list(range(len(dataset)))
+        dataset_indices = dataset_indices[:100]
+        # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
+        # trial with and without eval()
+        for it, image_idx in enumerate(dataset_indices):
+            img, gt, gt_masks, h, w, num_crowd = dataset.pull_item(image_idx)
+            continue
+            batch = Variable(img.unsqueeze(0))
+            preds = net(batch)
+        
+        #loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
+        #print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+        net.train()
+"""
+
 def compute_validation_loss(net, data_loader, log : Log):
     #Calculates the loss on the validation dataset.
     print('Calculating validaton losses, this may take a while...')
@@ -428,19 +451,29 @@ def compute_validation_loss(net, data_loader, log : Log):
 
     with torch.no_grad():
         losses = {}
-        
+        problematic_datums = []
+        net.eval()
         # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
         # trial with and without eval()
-        for datum in data_loader:
-            losses = net(datum) 
-            
+        for i,datum in enumerate(data_loader):
+            if i > 100:
+                break
+            try:
+                losses = net(datum) 
+            except: 
+                problematic_datums.append(datum)
+                continue
             losses = { k: (v).mean() for k,v in losses.items() }
             print(losses)
             loss = sum([losses[k] for k in losses]) 
-            print(loss.item())
-        
+            print(loss)
+        f = open('problematic_datums.txt', 'a')
+        f.write(str(len(problematic_datums)) + '\n\n')
+        f.write(str(problematic_datums))
+        f.close()
         loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
         print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+        net.train()
     
 
 def set_lr(optimizer, new_lr):
@@ -508,39 +541,74 @@ def no_inf_mean(x:torch.Tensor):
         return x.mean()
     
 #this is the old compute_validation loss class from dbolya
-#def compute_validation_loss(net, data_loader, criterion):
-#    global loss_types
-#
-#    with torch.no_grad():
-#        losses = {}
-#        
-#        # Don't switch to eval mode because we want to get losses
-#        iterations = 0
-#        for datum in data_loader:
-#            images, targets, masks, num_crowds = prepare_data(datum)
-#            out = net(images)
-#
-#            wrapper = ScatterWrapper(targets, masks, num_crowds)
-#            _losses = criterion(out, wrapper, wrapper.make_mask())
-#            
-#            for k, v in _losses.items():
-#                v = v.mean().item()
-#                if k in losses:
-#                    losses[k] += v
-#                else:
-#                    losses[k] = v
-#
-#            iterations += 1
-#            if args.validation_size <= iterations * args.batch_size:
-#break
-#        
-#        for k in losses:
-#            losses[k] /= iterations
-#            
-#        
-#        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
-#        wandb.log({"validation-loss" : loss_labels})
-#        print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+"""
+def compute_validation_loss(net, data_loader, criterion):
+    global loss_types
+
+    with torch.no_grad():
+        losses = {}
+        
+        # Don't switch to eval mode because we want to get losses
+        iterations = 0
+        for datum in data_loader:
+            images, targets, masks, num_crowds = prepare_data(datum)
+            out = net(images)
+
+            wrapper = ScatterWrapper(targets, masks, num_crowds)
+            _losses = criterion(out, wrapper, wrapper.make_mask())
+            
+            for k, v in _losses.items():
+                v = v.mean().item()
+                if k in losses:
+                    losses[k] += v
+                else:
+                    losses[k] = v
+
+            iterations += 1
+            if args.validation_size <= iterations * args.batch_size:
+                break
+        
+        for k in losses:
+            losses[k] /= iterations
+            
+        
+        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
+        #wandb.log({"validation-loss" : loss_labels})
+        print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+"""
+
+"""
+class ScatterWrapper:
+    #Input is any number of lists. This will preserve them through a dataparallel scatter.
+
+    def __init__(self, *args):
+        for arg in args:
+            if not isinstance(arg, list):
+                print('Warning: ScatterWrapper got input of non-list type.')
+        self.args = args
+        self.batch_size = len(args[0])
+
+    def make_mask(self):
+        out = torch.Tensor(list(range(self.batch_size))).long()
+        if args.cuda:
+            return out.cuda()
+        else:
+            return out
+
+    def get_args(self, mask):
+        device = mask.device
+        mask = [int(x) for x in mask]
+        out_args = [[] for _ in self.args]
+
+        for out, arg in zip(out_args, self.args):
+            for idx in mask:
+                x = arg[idx]
+                if isinstance(x, torch.Tensor):
+                    x = x.to(device)
+                out.append(x)
+
+        return out_args
+"""
 
 def compute_validation_map(epoch, iteration, yolact_net, dataset, log:Log=None):
     with torch.no_grad():
