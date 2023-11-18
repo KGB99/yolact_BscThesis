@@ -778,7 +778,7 @@ medical_ssd_resnet50_config = yolact_base_config.copy({
     # Dataset stuff
     'dataset': medical_all_ssd,
     'num_classes': len(medical_all_ssd.class_names) + 1,
-    'max_iter' : 5000,
+    'max_iter' : 250,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
         

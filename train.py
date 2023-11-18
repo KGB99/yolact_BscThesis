@@ -278,6 +278,8 @@ def train():
         for epoch in range(num_epochs):
             #do I need this??
             avg_loss = 0
+            print("DEBUGGING FOR VAL ERROR BEGINS")
+            compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
 
             # Resume from start_iter
             if (epoch+1)*epoch_size < iteration:
