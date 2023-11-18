@@ -142,9 +142,9 @@ medical_00100x = dataset_base.copy({
 
 medical_all_ssd = dataset_base.copy({
     'name' : 'medical_all_ssd',
-    'train_images' : '/cluster/scratch/kbirgi/mvpsp',
+    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
     'train_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD/train_annotations.json',
-    'valid_images' : '/cluster/scratch/kbirgi/mvpsp',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
     'valid_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD/val_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
@@ -153,9 +153,9 @@ medical_all_ssd = dataset_base.copy({
 
 medical_all = dataset_base.copy({
     'name' : 'medical_all',
-    'train_images' : '/cluster/scratch/kbirgi/mvpsp',
+    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
     'train_info' : '/cluster/home/kbirgi/annotations/train_all_coco.json',
-    'valid_images' : '/cluster/scratch/kbirgi/mvpsp',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
     'valid_info' : '/cluster/home/kbirgi/annotations/val_all_coco.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,

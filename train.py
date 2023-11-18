@@ -256,11 +256,13 @@ def train():
                                   generator=torch.Generator(device='cuda'))
     
     # need a second data loader for the validation set
-    #val_data_loader = data.DataLoader(val_dataset, args.batch_size,
-    #                                  num_workers=args.num_workers,
-    #                                  shuffle=True, collate_fn=detection_collate,
-    #                                  pin_memory=True,
-    #                                  generator=torch.Generator(device='cuda'))
+    # note that the val_dataset uses BaseTransform as transformation, not SSDAugmentation like during training
+    # this is because during training the SSDAugmentation also randomly flips,etc... images for robustness
+    val_data_loader = data.DataLoader(val_dataset, args.batch_size,
+                                      num_workers=args.num_workers,
+                                      shuffle=True, collate_fn=detection_collate,
+                                      pin_memory=True,
+                                      generator=torch.Generator(device='cuda'))
     
     save_path = lambda epoch, iteration: SavePath(cfg.name, epoch, iteration).get_path(root=args.save_folder)
     time_avg = MovingAverage()
@@ -278,12 +280,13 @@ def train():
         for epoch in range(num_epochs):
             #do I need this??
             avg_loss = 0
-            print("DEBUGGING FOR VAL ERROR BEGINS")
-            compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
 
             # Resume from start_iter
             if (epoch+1)*epoch_size < iteration:
                 continue
+
+            print("DEBUGGING VAL LOSS")
+            compute_validation_loss(yolact_net, val_data_loader, log)
             
             for datum in data_loader:
 
@@ -375,8 +378,9 @@ def train():
 
                     log.log_gpu_stats = args.log_gpu
                 
-                #also compute validation loss
-                #compute_validation_loss(yolact_net, val_data_loader, log)
+                #also compute validation loss every 100 iterations
+                #if iteration % 100 == 0:
+                #    compute_validation_loss(yolact_net, val_data_loader, log)
 
                 iteration += 1
 
@@ -426,8 +430,9 @@ def compute_validation_loss(net, data_loader, log : Log):
         losses = {}
         
         # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
+        # trial with and without eval()
         for datum in data_loader:
-            losses = net(datum)
+            losses = net(datum) 
             
             losses = { k: (v).mean() for k,v in losses.items() }
             print(losses)
@@ -436,19 +441,7 @@ def compute_validation_loss(net, data_loader, log : Log):
         
         loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
         print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
-        #if args.log:
-        #    log.log('val', )
-        #if args.log:
-        #            precision = 5
-        #            loss_info = {k: round(losses[k].item(), precision) for k in losses}
-        #            loss_info['T'] = round(loss.item(), precision)
-
-                    #if args.log_gpu:
-                    #    log.log_gpu_stats = (iteration % 10 == 0) # nvidia-smi is sloooow
-                        
-                    #log.log('train', loss=loss_info, epoch=epoch, iter=iteration,
-                    #    lr=round(cur_lr, 10), elapsed=elapsed)
-
+    
 
 def set_lr(optimizer, new_lr):
     for param_group in optimizer.param_groups:
