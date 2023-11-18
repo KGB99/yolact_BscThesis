@@ -256,11 +256,11 @@ def train():
                                   generator=torch.Generator(device='cuda'))
     
     # need a second data loader for the validation set
-    val_data_loader = data.DataLoader(val_dataset, args.batch_size,
-                                      num_workers=args.num_workers,
-                                      shuffle=True, collate_fn=detection_collate,
-                                      pin_memory=True,
-                                      generator=torch.Generator(device='cuda'))
+    #val_data_loader = data.DataLoader(val_dataset, args.batch_size,
+    #                                  num_workers=args.num_workers,
+    #                                  shuffle=True, collate_fn=detection_collate,
+    #                                  pin_memory=True,
+    #                                  generator=torch.Generator(device='cuda'))
     
     save_path = lambda epoch, iteration: SavePath(cfg.name, epoch, iteration).get_path(root=args.save_folder)
     time_avg = MovingAverage()
@@ -374,7 +374,7 @@ def train():
                     log.log_gpu_stats = args.log_gpu
                 
                 #also compute validation loss
-                compute_validation_loss(yolact_net, val_data_loader, log)
+                #compute_validation_loss(yolact_net, val_data_loader, log)
 
                 iteration += 1
 
@@ -397,6 +397,8 @@ def train():
             if args.validation_epoch > 0:
                 if epoch % args.validation_epoch == 0 and epoch > 0:
                     compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
+        
+        print("Training is done! Now computing validation mAP a final time...")
         
         # Compute validation mAP after training is finished
         compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
@@ -565,7 +567,7 @@ def setup_eval():
 
 if __name__ == '__main__':
     train()
-    exit()
+    """
     try:
         # initialize wandb
         WANDB = False
@@ -589,3 +591,4 @@ if __name__ == '__main__':
         #finish wandb, unsure if this is actually necessary
         if WANDB:
             wandb.finish()
+            """
