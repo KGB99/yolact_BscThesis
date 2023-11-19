@@ -278,15 +278,13 @@ def train():
     # try-except so you can use ctrl+c to save early and stop training
     try:
         for epoch in range(num_epochs):
-            #do I need this??
-            avg_loss = 0
 
             # Resume from start_iter
             if (epoch+1)*epoch_size < iteration:
                 continue
 
-            #print("DEBUGGING VAL LOSS")
-            #compute_validation_loss(net, val_data_loader, log)
+            print("DEBUGGING VAL LOSS")
+            compute_validation_loss(net, val_data_loader, log, epoch)
             
             for datum in data_loader:
 
@@ -443,7 +441,7 @@ def compute_validation_loss(net, dataset, log : Log):
         net.train()
 """
 
-def compute_validation_loss(net, data_loader, log : Log):
+def compute_validation_loss(net, data_loader, log : Log, epoch):
     #Calculates the loss on the validation dataset.
     print('Calculating validaton losses, this may take a while...')
 
@@ -456,8 +454,8 @@ def compute_validation_loss(net, data_loader, log : Log):
         # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
         # trial with and without eval()
         for i,datum in enumerate(data_loader):
-            if i > 100:
-                break
+            #if i > 1000:
+            #    break
             try:
                 losses = net(datum) 
             except: 
@@ -467,12 +465,16 @@ def compute_validation_loss(net, data_loader, log : Log):
             print(losses)
             loss = sum([losses[k] for k in losses]) 
             print(loss)
+
+            precision = 5
+            val_loss_info = {k: round(losses[k].item(), precision) for k in losses}
+            val_loss_info['T'] = round(loss.item(), precision)
+            log.log('val-loss', val_loss=val_loss_info, epoch=epoch, iter=i)
+            
         f = open('problematic_datums.txt', 'a')
         f.write(str(len(problematic_datums)) + '\n\n')
         f.write(str(problematic_datums))
         f.close()
-        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
-        print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
         net.train()
     
 
