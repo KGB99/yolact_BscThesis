@@ -242,7 +242,7 @@ def train():
     last_time = time.time()
 
     epoch_size = len(dataset) // args.batch_size
-    num_epochs = 5#math.ceil(cfg.max_iter / epoch_size)
+    num_epochs = math.ceil(cfg.max_iter / epoch_size)
     print("size per epoch: " + str(epoch_size))
     print("number of epochs: " + str(num_epochs))
 

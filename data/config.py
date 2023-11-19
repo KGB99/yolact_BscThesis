@@ -778,7 +778,24 @@ medical_ssd_resnet50_config = yolact_base_config.copy({
     # Dataset stuff
     'dataset': medical_all_ssd,
     'num_classes': len(medical_all_ssd.class_names) + 1,
-    'max_iter' : 1000,
+    'max_iter' : 5000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+medical_ssd_resnet50_20000_config = yolact_base_config.copy({
+    'name' : 'medical_ssd_resnet50',
+    # Dataset stuff
+    'dataset': medical_all_ssd,
+    'num_classes': len(medical_all_ssd.class_names) + 1,
+    'max_iter' : 20000,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
         
