@@ -61,7 +61,7 @@ parser.add_argument('--save_interval', default=10000, type=int,
                     help='The number of iterations between saving the model.')
 parser.add_argument('--validation_size', default=5000, type=int,
                     help='The number of images to use for validation.')
-parser.add_argument('--validation_epoch', default=2, type=int,
+parser.add_argument('--validation_epoch', default=1, type=int,
                     help='Output validation information every n iterations. If -1, do no validation.')
 parser.add_argument('--keep_latest', dest='keep_latest', action='store_true',
                     help='Only keep the latest checkpoint instead of each one.')
@@ -242,7 +242,7 @@ def train():
     last_time = time.time()
 
     epoch_size = len(dataset) // args.batch_size
-    num_epochs = 5#math.ceil(cfg.max_iter / epoch_size)
+    num_epochs = math.ceil(cfg.max_iter / epoch_size)
     print("size per epoch: " + str(epoch_size))
     print("number of epochs: " + str(num_epochs))
 
@@ -256,9 +256,11 @@ def train():
                                   generator=torch.Generator(device='cuda'))
     
     # need a second data loader for the validation set
+    # note that the val_dataset uses BaseTransform as transformation, not SSDAugmentation like during training
+    # this is because during training the SSDAugmentation also randomly flips,etc... images for robustness
     val_data_loader = data.DataLoader(val_dataset, args.batch_size,
                                       num_workers=args.num_workers,
-                                      shuffle=True, collate_fn=detection_collate,
+                                      shuffle=False, collate_fn=detection_collate,
                                       pin_memory=True,
                                       generator=torch.Generator(device='cuda'))
     
@@ -282,6 +284,9 @@ def train():
             # Resume from start_iter
             if (epoch+1)*epoch_size < iteration:
                 continue
+
+            #print("DEBUGGING VAL LOSS")
+            #compute_validation_loss(net, val_data_loader, log)
             
             for datum in data_loader:
 
@@ -327,7 +332,7 @@ def train():
                 loss = sum([losses[k] for k in losses])
                 
                 #avg loss for wandb?
-                avg_loss += loss.item()
+                #avg_loss += loss.item()
                 
 
                 # no_inf_mean removes some components from the loss, so make sure to backward through all of it
@@ -373,8 +378,9 @@ def train():
 
                     log.log_gpu_stats = args.log_gpu
                 
-                #also compute validation loss
-                compute_validation_loss(yolact_net, val_data_loader, log)
+                #also compute validation loss every 100 iterations
+                #if iteration % 100 == 0:
+                #    compute_validation_loss(yolact_net, val_data_loader, log)
 
                 iteration += 1
 
@@ -398,6 +404,8 @@ def train():
                 if epoch % args.validation_epoch == 0 and epoch > 0:
                     compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
         
+        print("Training is done! Now computing validation mAP a final time...")
+        
         # Compute validation mAP after training is finished
         compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
     except KeyboardInterrupt:
@@ -412,6 +420,29 @@ def train():
 
     yolact_net.save_weights(save_path(epoch, iteration))
 
+"""
+def compute_validation_loss(net, dataset, log : Log):
+    #Calculates the loss on the validation dataset.
+    print('Calculating validaton losses, this may take a while...')
+    global loss_types
+    with torch.no_grad():
+        net.eval()
+        losses = {}
+        dataset_indices = list(range(len(dataset)))
+        dataset_indices = dataset_indices[:100]
+        # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
+        # trial with and without eval()
+        for it, image_idx in enumerate(dataset_indices):
+            img, gt, gt_masks, h, w, num_crowd = dataset.pull_item(image_idx)
+            continue
+            batch = Variable(img.unsqueeze(0))
+            preds = net(batch)
+        
+        #loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
+        #print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+        net.train()
+"""
+
 def compute_validation_loss(net, data_loader, log : Log):
     #Calculates the loss on the validation dataset.
     print('Calculating validaton losses, this may take a while...')
@@ -420,31 +451,30 @@ def compute_validation_loss(net, data_loader, log : Log):
 
     with torch.no_grad():
         losses = {}
-        
+        problematic_datums = []
+        net.eval()
         # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
-        for datum in data_loader:
-            losses = net(datum)
-            
+        # trial with and without eval()
+        for i,datum in enumerate(data_loader):
+            if i > 100:
+                break
+            try:
+                losses = net(datum) 
+            except: 
+                problematic_datums.append(datum)
+                continue
             losses = { k: (v).mean() for k,v in losses.items() }
             print(losses)
             loss = sum([losses[k] for k in losses]) 
-            print(loss.item())
-        
+            print(loss)
+        f = open('problematic_datums.txt', 'a')
+        f.write(str(len(problematic_datums)) + '\n\n')
+        f.write(str(problematic_datums))
+        f.close()
         loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
         print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
-        #if args.log:
-        #    log.log('val', )
-        #if args.log:
-        #            precision = 5
-        #            loss_info = {k: round(losses[k].item(), precision) for k in losses}
-        #            loss_info['T'] = round(loss.item(), precision)
-
-                    #if args.log_gpu:
-                    #    log.log_gpu_stats = (iteration % 10 == 0) # nvidia-smi is sloooow
-                        
-                    #log.log('train', loss=loss_info, epoch=epoch, iter=iteration,
-                    #    lr=round(cur_lr, 10), elapsed=elapsed)
-
+        net.train()
+    
 
 def set_lr(optimizer, new_lr):
     for param_group in optimizer.param_groups:
@@ -511,39 +541,74 @@ def no_inf_mean(x:torch.Tensor):
         return x.mean()
     
 #this is the old compute_validation loss class from dbolya
-#def compute_validation_loss(net, data_loader, criterion):
-#    global loss_types
-#
-#    with torch.no_grad():
-#        losses = {}
-#        
-#        # Don't switch to eval mode because we want to get losses
-#        iterations = 0
-#        for datum in data_loader:
-#            images, targets, masks, num_crowds = prepare_data(datum)
-#            out = net(images)
-#
-#            wrapper = ScatterWrapper(targets, masks, num_crowds)
-#            _losses = criterion(out, wrapper, wrapper.make_mask())
-#            
-#            for k, v in _losses.items():
-#                v = v.mean().item()
-#                if k in losses:
-#                    losses[k] += v
-#                else:
-#                    losses[k] = v
-#
-#            iterations += 1
-#            if args.validation_size <= iterations * args.batch_size:
-#break
-#        
-#        for k in losses:
-#            losses[k] /= iterations
-#            
-#        
-#        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
-#        wandb.log({"validation-loss" : loss_labels})
-#        print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+"""
+def compute_validation_loss(net, data_loader, criterion):
+    global loss_types
+
+    with torch.no_grad():
+        losses = {}
+        
+        # Don't switch to eval mode because we want to get losses
+        iterations = 0
+        for datum in data_loader:
+            images, targets, masks, num_crowds = prepare_data(datum)
+            out = net(images)
+
+            wrapper = ScatterWrapper(targets, masks, num_crowds)
+            _losses = criterion(out, wrapper, wrapper.make_mask())
+            
+            for k, v in _losses.items():
+                v = v.mean().item()
+                if k in losses:
+                    losses[k] += v
+                else:
+                    losses[k] = v
+
+            iterations += 1
+            if args.validation_size <= iterations * args.batch_size:
+                break
+        
+        for k in losses:
+            losses[k] /= iterations
+            
+        
+        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
+        #wandb.log({"validation-loss" : loss_labels})
+        print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
+"""
+
+"""
+class ScatterWrapper:
+    #Input is any number of lists. This will preserve them through a dataparallel scatter.
+
+    def __init__(self, *args):
+        for arg in args:
+            if not isinstance(arg, list):
+                print('Warning: ScatterWrapper got input of non-list type.')
+        self.args = args
+        self.batch_size = len(args[0])
+
+    def make_mask(self):
+        out = torch.Tensor(list(range(self.batch_size))).long()
+        if args.cuda:
+            return out.cuda()
+        else:
+            return out
+
+    def get_args(self, mask):
+        device = mask.device
+        mask = [int(x) for x in mask]
+        out_args = [[] for _ in self.args]
+
+        for out, arg in zip(out_args, self.args):
+            for idx in mask:
+                x = arg[idx]
+                if isinstance(x, torch.Tensor):
+                    x = x.to(device)
+                out.append(x)
+
+        return out_args
+"""
 
 def compute_validation_map(epoch, iteration, yolact_net, dataset, log:Log=None):
     with torch.no_grad():
@@ -565,7 +630,7 @@ def setup_eval():
 
 if __name__ == '__main__':
     train()
-    exit()
+    """
     try:
         # initialize wandb
         WANDB = False
@@ -589,3 +654,4 @@ if __name__ == '__main__':
         #finish wandb, unsure if this is actually necessary
         if WANDB:
             wandb.finish()
+            """

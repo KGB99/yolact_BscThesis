@@ -929,6 +929,7 @@ def evaluate(net:Yolact, dataset, train_mode=False):
 
     try:
         # Main eval loop
+        print("Beginning Evaluation...")
         for it, image_idx in enumerate(dataset_indices):
             timer.reset()
 
