@@ -450,7 +450,7 @@ def compute_validation_loss(net, data_loader, log : Log, epoch):
     with torch.no_grad():
         losses = {}
         problematic_datums = []
-        net.eval()
+        #net.eval()
         # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
         # trial with and without eval()
         for i,datum in enumerate(data_loader):
@@ -475,7 +475,7 @@ def compute_validation_loss(net, data_loader, log : Log, epoch):
         f.write(str(len(problematic_datums)) + '\n\n')
         f.write(str(problematic_datums))
         f.close()
-        net.train()
+        #net.train()
     
 
 def set_lr(optimizer, new_lr):
