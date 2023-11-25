@@ -143,9 +143,9 @@ medical_00100x = dataset_base.copy({
 medical_all_ssd = dataset_base.copy({
     'name' : 'medical_all_ssd',
     'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'train_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD/train_annotations.json',
+    'train_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD_YOLACT/train_annotations.json',
     'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'valid_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD/val_annotations.json',
+    'valid_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD_YOLACT/val_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : None
