@@ -378,7 +378,7 @@ def train():
                 
                 #also compute validation loss every 100 iterations
                 if iteration > 0 and iteration % 500 == 0:
-                    compute_validation_loss(net, val_data_loader, log, epoch, iter)
+                    compute_validation_loss(net, val_data_loader, log, epoch, iteration)
 
                 iteration += 1
 
@@ -440,7 +440,7 @@ def compute_validation_loss(net, dataset, log : Log):
         net.train()
 """
 
-def compute_validation_loss(net, data_loader, log : Log, epoch, iter):
+def compute_validation_loss(net, data_loader, log : Log, epoch, i):
     #Calculates the loss on the validation dataset.
     # note: epoch and iter are from the training loop, not the local epoch and iter
     print('Calculating validaton losses, this may take a while...')
@@ -467,15 +467,13 @@ def compute_validation_loss(net, data_loader, log : Log, epoch, iter):
             #    break
             try:
                 losses = net(datum) 
-            except Exception as e: 
+            except Exception as e:  
                 print(e)
                 problematic_datums.append(datum)
                 continue
             losses = { k: (v).mean() for k,v in losses.items() }
-            print(losses)
-            loss = sum([losses[k] for k in losses]) 
-            print(loss)
-
+            loss = sum([losses[k] for k in losses])
+            
             precision = 5
             val_loss_info = {k: round(losses[k].item(), precision) for k in losses}
             val_loss_info['T'] = round(loss.item(), precision)
@@ -489,7 +487,9 @@ def compute_validation_loss(net, data_loader, log : Log, epoch, iter):
         for key in val_loss_avg:
             val_loss_avg[key] = (val_loss_avg[key]/iterations)
         end_time = time.time()
-        log.log('val-loss', val_loss=val_loss_avg, epoch=epoch, iter=iter, elapsed=(end_time - start_time))
+
+        print(val_loss_avg)
+        log.log('val-loss', val_loss=val_loss_avg, epoch=epoch, iter=i, elapsed=(end_time - start_time))
             
         f = open('problematic_datums.txt', 'a')
         f.write('\n\n------------------------------------------------')
