@@ -151,12 +151,12 @@ medical_all_ssd = dataset_base.copy({
     'label_map' : None
 })
 
-medical_test_ssd = dataset_base.copy({
+medical_test_subset_ssd = dataset_base.copy({
     'name' : 'medical_test_ssd',
     'train_images' : '',
     'train_info' : '',
     'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'valid_info' : '/cluster/home/kbirgi/Annotations/testSetSSD_YOLACT/test_annotations.json',
+    'valid_info' : '/cluster/home/kbirgi/Annotations/testSetSubsetSSD/test_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : None
