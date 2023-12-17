@@ -377,7 +377,7 @@ def train():
                     log.log_gpu_stats = args.log_gpu
                 
                 #also compute validation loss every 100 iterations
-                if iteration > 0 and iteration % 500 == 0:
+                if iteration > 0 and iteration % 3000 == 0:
                     compute_validation_loss(net, val_data_loader, log, epoch, iteration)
 
                 iteration += 1
