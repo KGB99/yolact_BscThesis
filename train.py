@@ -278,15 +278,13 @@ def train():
     # try-except so you can use ctrl+c to save early and stop training
     try:
         for epoch in range(num_epochs):
-            #do I need this??
-            avg_loss = 0
 
             # Resume from start_iter
             if (epoch+1)*epoch_size < iteration:
                 continue
 
             #print("DEBUGGING VAL LOSS")
-            #compute_validation_loss(net, val_data_loader, log)
+            #compute_validation_loss(net, val_data_loader, log, epoch)
             
             for datum in data_loader:
 
@@ -379,8 +377,8 @@ def train():
                     log.log_gpu_stats = args.log_gpu
                 
                 #also compute validation loss every 100 iterations
-                #if iteration % 100 == 0:
-                #    compute_validation_loss(yolact_net, val_data_loader, log)
+                if iteration > 0 and iteration % 3000 == 0:
+                    compute_validation_loss(net, val_data_loader, log, epoch, iteration)
 
                 iteration += 1
 
@@ -397,7 +395,6 @@ def train():
                             os.remove(latest)
 
 
-            #if epoch > 0:
             
             # This is done per epoch
             if args.validation_epoch > 0:
@@ -443,37 +440,66 @@ def compute_validation_loss(net, dataset, log : Log):
         net.train()
 """
 
-def compute_validation_loss(net, data_loader, log : Log):
+def compute_validation_loss(net, data_loader, log : Log, epoch, i):
     #Calculates the loss on the validation dataset.
+    # note: epoch and iter are from the training loop, not the local epoch and iter
     print('Calculating validaton losses, this may take a while...')
-
+    start_time = time.time()
     global loss_types
 
     with torch.no_grad():
+        val_loss_avg = {}
+        val_loss_avg['B'] = 0
+        val_loss_avg['M'] = 0
+        val_loss_avg['C'] = 0
+        val_loss_avg['S'] = 0
+        val_loss_avg['T'] = 0
+
         losses = {}
         problematic_datums = []
-        net.eval()
+        #net.eval()
         # Don't switch to eval mode here. Warning: this is viable but changes the interpretation of the validation loss.
-        # trial with and without eval()
-        for i,datum in enumerate(data_loader):
-            if i > 100:
-                break
+        # TODO: trial with and without eval()
+        iterations = 0
+        for datum in data_loader:
+            iterations += 1
+            #if i > 1000:
+            #    break
             try:
                 losses = net(datum) 
-            except: 
+            except Exception as e:  
+                print(e)
                 problematic_datums.append(datum)
                 continue
             losses = { k: (v).mean() for k,v in losses.items() }
-            print(losses)
-            loss = sum([losses[k] for k in losses]) 
-            print(loss)
+            loss = sum([losses[k] for k in losses])
+            
+            precision = 5
+            val_loss_info = {k: round(losses[k].item(), precision) for k in losses}
+            val_loss_info['T'] = round(loss.item(), precision)
+            
+            val_loss_avg['B'] += val_loss_info['B']
+            val_loss_avg['M'] += val_loss_info['M']
+            val_loss_avg['C'] += val_loss_info['C']
+            val_loss_avg['S'] += val_loss_info['S']
+            val_loss_avg['T'] += val_loss_info['T']
+        
+        for key in val_loss_avg:
+            val_loss_avg[key] = (val_loss_avg[key]/iterations)
+        end_time = time.time()
+
+        print(val_loss_avg)
+        log.log('val-loss', val_loss=val_loss_avg, epoch=epoch, iter=i, elapsed=(end_time - start_time))
+            
         f = open('problematic_datums.txt', 'a')
-        f.write(str(len(problematic_datums)) + '\n\n')
+        f.write('\n\n------------------------------------------------')
+        f.write('\n\nNEW CALCULATION ITERATION \n\n')
+        f.write('------------------------------------------------')
+
+        f.write('Nr. Problematic Datums: ' + str(len(problematic_datums)) + '\n\n')
         f.write(str(problematic_datums))
         f.close()
-        loss_labels = sum([[k, losses[k]] for k in loss_types if k in losses], [])
-        print(('Validation Loss||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
-        net.train()
+        #net.train()
     
 
 def set_lr(optimizer, new_lr):
