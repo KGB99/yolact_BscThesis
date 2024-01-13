@@ -910,6 +910,22 @@ pbr_modal_resnet50_20000 = yolact_base_config.copy({
     }),
 })
 
+sample_config = yolact_base_config.copy({
+    #config for sampling algo, just the bare necessities
+    # if backbone should change must change here as well to whatever resnet we use
+    'name' : 'sample_config',
+    'num_classes': 3,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
 
 yolact_im400_config = yolact_base_config.copy({
     'name': 'yolact_im400',
