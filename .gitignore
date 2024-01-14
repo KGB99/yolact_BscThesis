@@ -161,3 +161,4 @@ _.py
 
 wandb/
 slurm*
+testerOutput
