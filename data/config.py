@@ -140,23 +140,23 @@ medical_00100x = dataset_base.copy({
     'label_map' : { 1 : 1 }
 })
 
-medical_train_ssd = dataset_base.copy({
-    'name' : 'medical_train_ssd',
+train_ssd_amodal = dataset_base.copy({
+    'name' : 'ssd_amodal',
     'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'train_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD_YOLACT/train_annotations.json',
+    'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/trainSSD/train_labels/amodal/train_annotations.json',
     'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'valid_info' : '/cluster/home/kbirgi/Annotations/trainSetSSD_YOLACT/val_annotations.json',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/trainSSD/train_labels/amodal/val_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : None
 })
 
-medical_test_ssd = dataset_base.copy({
+test_all = dataset_base.copy({
     'name' : 'medical_test_ssd',
     'train_images' : '',
     'train_info' : '',
     'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'valid_info' : '/cluster/home/kbirgi/Annotations/subsets/testSetSSD/test_annotations.json',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/testAll/test_labels/amodal/test_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : None
@@ -817,28 +817,11 @@ medical_00100x_resnet50_config = yolact_base_config.copy({
     }),
 })
 
-medical_ssd_resnet50_config = yolact_base_config.copy({
-    'name' : 'medical_ssd_resnet50',
+ssd_amodal_resnet50_20000_config = yolact_base_config.copy({
+    'name' : 'ssd_amodal_resnet50',
     # Dataset stuff
-    'dataset': medical_train_ssd,
-    'num_classes': len(medical_train_ssd.class_names) + 1,
-    'max_iter' : 5000,
-    'backbone': resnet50_backbone.copy({
-        'selected_layers': list(range(1, 4)),
-        
-        'pred_scales': yolact_base_config.backbone.pred_scales,
-        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
-        'use_pixel_scales': True,
-        'preapply_sqrt': False,
-        'use_square_anchors': True, # This is for backward compatability with a bug
-    }),
-})
-
-medical_ssd_resnet50_20000_config = yolact_base_config.copy({
-    'name' : 'medical_ssd_resnet50',
-    # Dataset stuff
-    'dataset': medical_train_ssd,
-    'num_classes': len(medical_train_ssd.class_names) + 1,
+    'dataset': train_ssd_amodal,
+    'num_classes': len(train_ssd_amodal.class_names) + 1,
     'max_iter' : 20000,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
@@ -877,7 +860,7 @@ medical_all_resnet50_config = yolact_base_config.copy({
 })
 
 pbr_amodal_resnet50_20000 = yolact_base_config.copy({
-    'name' : 'pbr_amodal_resnet50_20000',
+    'name' : 'pbr_amodal_resnet50',
     # Dataset stuff
     'dataset': pbr_amodal,
     'num_classes': len(pbr_amodal.class_names) + 1,
@@ -894,7 +877,7 @@ pbr_amodal_resnet50_20000 = yolact_base_config.copy({
 })
 
 pbr_modal_resnet50_20000 = yolact_base_config.copy({
-    'name' : 'pbr_modal_resnet50_20000',
+    'name' : 'pbr_modal_resnet50',
     # Dataset stuff
     'dataset': pbr_modal,
     'num_classes': len(pbr_modal.class_names) + 1,
