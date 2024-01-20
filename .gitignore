@@ -162,3 +162,4 @@ _.py
 wandb/
 slurm*
 testerOutput
+SA_models
