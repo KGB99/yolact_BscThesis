@@ -926,7 +926,7 @@ def evaluate(net:Yolact, dataset, train_mode=False):
         dataset_indices.sort(key=lambda x: hashed[x])
 
     dataset_indices = dataset_indices[:dataset_size]
-
+    dataloader_problem_counter = 0
     try:
         # Main eval loop
         print("Beginning Evaluation...")
@@ -934,7 +934,13 @@ def evaluate(net:Yolact, dataset, train_mode=False):
             timer.reset()
 
             with timer.env('Load Data'):
-                img, gt, gt_masks, h, w, num_crowd = dataset.pull_item(image_idx)
+                try:
+                    img, gt, gt_masks, h, w, num_crowd = dataset.pull_item(image_idx)
+                except Exception:
+                    print(str(image_idx) + ' image_idx has a problem and wont load')
+                    dataloader_problem_counter += 1
+                    print('Have had ' + str(dataloader_problem_counter) + ' fails so far...')
+                    continue
 
                 # Test flag, do not upvote
                 if cfg.mask_proto_debug:
@@ -951,6 +957,8 @@ def evaluate(net:Yolact, dataset, train_mode=False):
             # Perform the meat of the operation here depending on our mode.
             if args.display:
                 img_numpy = prep_display(preds, img, h, w)
+                #cv2.imread(img_numpy)
+                cv2.imwrite('./results/processedImages/' + str(image_idx + 1) + '.png', img_numpy[:,:,::-1])
             elif args.benchmark:
                 prep_benchmark(preds, h, w)
             else:
@@ -964,9 +972,9 @@ def evaluate(net:Yolact, dataset, train_mode=False):
             if args.display:
                 if it > 1:
                     print('Avg FPS: %.4f' % (1 / frame_times.get_avg()))
-                plt.imshow(img_numpy)
-                plt.title(str(dataset.ids[image_idx]))
-                plt.show()
+                #plt.imshow(img_numpy)
+                #plt.title(str(dataset.ids[image_idx]))
+                #plt.show()
             elif not args.no_bar:
                 if it > 1: fps = 1 / frame_times.get_avg()
                 else: fps = 0
