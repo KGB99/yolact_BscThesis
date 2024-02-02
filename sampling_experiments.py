@@ -8,7 +8,7 @@ import json
 from skimage import measure
 import scipy.ndimage as ndi
 
-import sys
+import time
 import os
 #sys.path.append(os.path.abspath('/cluster/project/infk/cvg/heinj/students/kbirgi/yolact_BscThesis'))
 from yolact import Yolact
@@ -18,6 +18,7 @@ import torch.backends.cudnn as cudnn
 from utils.augmentations import BaseTransform, FastBaseTransform, Resize
 from layers.output_utils import postprocess, undo_image_transformation
 from collections import defaultdict
+import pycocotools.mask as maskUtils
 
 
 iou_thresholds = [x / 100 for x in range(50, 100, 5)]
@@ -42,7 +43,7 @@ def prep_display(dets_out, img, h, w, undo_transform=True, class_color=False, ma
     save = cfg.rescore_bbox
     cfg.rescore_bbox = True
     t = postprocess(dets_out, w, h, visualize_lincomb = False,
-                                    crop_masks        = False,
+                                    crop_masks        = CROP_MASKS,
                                     score_threshold   = SCORE_THRESHOLD)
     cfg.rescore_bbox = save
 
@@ -249,14 +250,45 @@ def calculate_blobs(mask):
     blobs = [blob.squeeze() for blob in blobs]
     return blobs
 
+def checkBbox(blob, bbox, h, w): 
+    x1 = bbox[0]
+    y1 = bbox[1]
+    x2 = bbox[2]
+    y2 = bbox[3]
+    #bbox_image = np.zeros_like(image)
+    #cv2.circle(bbox_image, (x1,y1), 5, (0,0,255), -1)
+    #cv2.circle(bbox_image, (x1, y2), 5, (0,0,255), -1)
+    #cv2.circle(bbox_image, (x2, y1), 5, (0,0,255), -1)
+    #cv2.circle(bbox_image, (x2,y2), 5, (0,0,255), -1)
+    for idx, elem in np.ndenumerate(blob):
+        # idx[1] = x value (columns), idx[0] = y value (rows)
+        if (idx[1] >= x1) & (idx[1] <= x2) & (idx[0] >= y1) & (idx[0] <= y2):
+            #cv2.circle(bbox_image, (idx[1],idx[0]), 2, (0,255,0), -1)
+            if elem:
+                return True
+    #result = cv2.addWeighted(image, 1, bbox_image, 0.5, 0)
+    #cv2.imwrite('testerOutput/bbox.png', result)
+    return False
+
+
+def crop_masks(yolact_preds, h, w):
+    for pred in yolact_preds:
+        keep = []
+        blobs = pred['blobs']
+        for blob in blobs:
+            if checkBbox(blob, pred['bbox'], h, w):
+                keep.append(blob)
+        pred['blobs'] = keep
+    return yolact_preds
+
 # facebooks show masks method from their notebook:
 # https://github.com/facebookresearch/segment-anything/blob/main/notebooks/automatic_mask_generator_example.ipynb
 def show_anns(anns):
     if len(anns) == 0:
         return
     sorted_anns = sorted(anns, key=(lambda x: x['area']), reverse=True)
-    ax = plt.gca()
-    ax.set_autoscale_on(False)
+    #ax = plt.gca()
+    #ax.set_autoscale_on(False)
 
     img = np.ones((sorted_anns[0]['segmentation'].shape[0], sorted_anns[0]['segmentation'].shape[1], 4))
     img[:,:,3] = 0
@@ -264,15 +296,37 @@ def show_anns(anns):
         m = ann['segmentation']
         color_mask = np.concatenate([np.random.random(3), [0.35]])
         img[m] = color_mask
-    ax.imshow(img)
+    return img
 
-IOU_THRESHOLD = 0.1
-SCORE_THRESHOLD = 0.25
-TOP_K = 5
-SEGMENT_SAMPLE = False
-SEGMENT_EVERYTHING = True
-USE_YOLACT = True
-TAKE_MAX_PREDS = False
+def prep_path(results_path, img_path):
+    temp_img_path = img_path
+    temp_array = []
+    while (os.path.split(temp_img_path)[1] != ''):
+        temp_path_split = os.path.split(temp_img_path)
+        temp_array.append(temp_path_split[1])
+        temp_img_path = temp_path_split[0]
+    temp_array.reverse()
+    temp_path = results_path
+    for i in range(len(temp_array) - 1):
+        temp_path = temp_path + "/" + temp_array[i]
+        if (not os.path.exists(temp_path)):
+            os.mkdir(temp_path)
+    return
+
+
+IOU_THRESHOLD = 0 # threshold for how much iou the SA-masks need with yolact preds to be included in result
+SCORE_THRESHOLD = 0.25 # threshold for yolact model
+TOP_K = 5 # top-k for yolact model
+SEGMENT_SAMPLE = False # use the sample method of segment anything, currently not implemented
+SEGMENT_EVERYTHING = True # use segment everything mode of segment anything
+USE_YOLACT = True # keep true unless you do not intend to load the yolact model
+TAKE_MAX_PREDS = False # takes at most the highest scoring prediction per class, none if no prediction
+CROP_MASKS = True # crop the masks or not
+CROP_MASKS_PERSONAL = True # use personal cropping method which keeps blobs intact even if outside of bbox or yolact cropping method
+SAVE_YOLACT_PREDS = True
+SAVE_SA = True
+SAVE_PLOTS = True # TODO: add details to plots like iou and legend
+MAX_IMAGE = 200 # max amount of images per folder, currently just because processing all images is too expensive
 
 if __name__ == '__main__':
     
@@ -282,15 +336,46 @@ if __name__ == '__main__':
     parser.add_argument('--trained_model', required=True, type=str)
     parser.add_argument('--coco_file', required=True, type=str)
     parser.add_argument('--images_dir', required=True, type=str)
+    parser.add_argument('--results_path', required=False, default='/cluster/project/infk/cvg/heinj/students/kbirgi/generating_masks', type=str)
+    parser.add_argument('--results_dir', required=False, default='output', type=str)
     parser.add_argument('--sa_model', required=False, type=str, default='sam_vit_h_4b8939.pth')
+    parser.add_argument('--stride', help='10 means every 10th picture is processed, 100 means every 100th picture is processed, etc...', required=False, type=int, default='1')
+    parser.add_argument('--start_img', default=0, type=int)
+    parser.add_argument('--start_cam', default=0, type=int)
     args = parser.parse_args()
+    stride = args.stride
     images_dir = args.images_dir
+    results_dir = args.results_dir
+    temp_results_path = args.results_path
+    start_img = args.start_img
+    start_cam = args.start_cam
+    
+    # prepare results directory
+    results_path = temp_results_path + '/' + results_dir
+    if (not (os.path.exists(results_path))):
+        os.mkdir(results_path)
+    results_path = temp_results_path + '/' + results_dir + '/gen_masks'
+    if (not (os.path.exists(results_path))):
+        os.mkdir(results_path)
+
+    # prepare yolact directory
+    yolact_path = temp_results_path + '/' + results_dir + '/yolact_preds'
+    if (not os.path.exists(yolact_path)):
+        os.mkdir(yolact_path)
+    
+    sa_path = temp_results_path + '/' + results_dir + '/sa_preds'
+    if (not os.path.exists(sa_path)):
+        os.mkdir(sa_path)
+
+    plots_path = temp_results_path + '/' + results_dir + '/plots'
+    if (not os.path.exists(sa_path)):
+        os.mkdir(sa_path)
+
 
     if USE_YOLACT:
         print("Setting configs...",end='', flush=True)
-        set_cfg("sample_config")    
+        set_cfg("sample_config")   
         print(" Done.", flush=True)
-
         with torch.no_grad():
             cudnn.fastest = True
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -322,27 +407,79 @@ if __name__ == '__main__':
     f.close()
     print(' Done.', flush=True)
 
+    print('Using stride: ' + str(stride))
+
+    # this is the dict that will be written to result_dict_path
+    # following structure will be written:
+    # {img_id : {pred_id : {file_name, gen_mask_image_path, iou_score, gt_mask, pred_mask}}}
+    # img_id: is the id from the coco file, 
+    # pred_id: is the prediction id from yolact, cause there can be multiple predictions,
+    # file_name: is the file name from the coco file,
+    # class: is the class of the predicted object, here its 0 or 1
+    # gen_mask_image_path: is the path of the resulting image with both masks visualized
+    # iou_score: is the iou score of the gt_mask and the pred_mask
+    # im not sure if storing masks is smart, i thought maybe the colors might want to be changed
+    # but it will take up a lot of space so for now im going to leave it out
+    # gt_mask is the ground truth mask, stored in its original format (storing masks is optional)
+    # pred_mask is the predicted mask, stored in ?? format (storing masks is optional)
+    #results dict takes up too much space so get rid of it
+    #results = {}
+
     len_coco_dict = len(coco_dict)
+    print('Nr of Cameras: ' + str(len_coco_dict))
+    passed = False
     for i,camera in enumerate(coco_dict):
+        if ((not passed) & ((i+1) < start_cam)):
+            continue
+
         camera_dict = coco_dict[camera]
         len_camera_dict = len(camera_dict)
+        camera_results = {}
         for j,imageId in enumerate(camera_dict):
-            if j < 1000:
+    
+            if ((not passed) & ((j+1) < start_img)):
                 continue
-            if j > 1005:
-                exit()
+            passed = True
 
+            if ((j % stride) != 0):
+                continue
+
+            start_time = time.time()
             print("Camera:" + str(i+1) + "/" + str(len_coco_dict) + \
-                " | Image:" + str(j+1) + "/" + str(len_camera_dict), flush=True)
-            
-            img_dict = camera_dict[imageId]['img']
-            mask_dict = camera_dict[imageId]['mask']
-            img_path = images_dir + "/" + img_dict['file_name']
+                " | Image:" + str(j+1) + "/" + str(len_camera_dict), end = '')
 
-            # this part is to get the blobs from the yolact predictions
+            if SAVE_PLOTS:
+                #fig, axs = plt.subplots(1,2, figsize=(10,6)) # figsize=(10,6)
+                fig, axs = plt.subplots(1,3, figsize=(10,5))
+                #fig.subplots_adjust(bottom=0.15, hspace=0.3)  # Adjust bottom margin to create space for the description
+            
+            img_dict = camera_dict[imageId]['img'] # keys: ['id', 'width', 'height', 'file_name']
+            mask_dict = camera_dict[imageId]['mask'] # keys: ['segmentation', 'bbox', 'area', 'iscrowd', 'image_id', 'category_id', 'id'] 
+            img_path = images_dir + "/" + img_dict['file_name']
+            image = cv2.imread(img_path)
+            h, w, _ = image.shape
+            
+            prep_path(results_path, img_dict['file_name'])
+            img_results_path = results_path + '/' + img_dict['file_name']
+
             with torch.no_grad():
-                # this is a list of dicts containing keys (class,score,bbox,mask)
-                pre_yolact_preds = get_yolact_preds(img_path, sum_all=False, crop_masks=True)
+                # if we only want the yolact preds and no processing
+                if SAVE_YOLACT_PREDS:
+                    prep_path(yolact_path, img_dict['file_name'])
+                    yolact_preds_path = yolact_path + '/' + img_dict['file_name']
+                    frame = torch.from_numpy(cv2.imread(img_path)).cuda().float()
+                    batch = FastBaseTransform()(frame.unsqueeze(0))
+                    preds = net(batch)
+                    img_numpy = prep_display(preds, frame, None, None, undo_transform=False)
+                    img_numpy = cv2.cvtColor(img_numpy, cv2.COLOR_BGR2RGB)
+                    axs[1].imshow(img_numpy)
+                    axs[1].axis('off')
+                    axs[1].set_title('Yolact Prediction')
+                    #cv2.imwrite(yolact_preds_path, img_numpy)
+                
+
+                # pre_yolact_preds is a list of dicts containing keys (class,score,bbox,mask)
+                pre_yolact_preds = get_yolact_preds(img_path, sum_all=False, crop_masks=(CROP_MASKS & (not CROP_MASKS_PERSONAL)))
                 if TAKE_MAX_PREDS:
                     yolact_preds = []
                     powerdrill_max_conf = -1
@@ -367,25 +504,98 @@ if __name__ == '__main__':
 
                 for yolact_pred in yolact_preds:
                     yolact_pred['blobs'] = calculate_blobs(yolact_pred['mask'])
-
+                if CROP_MASKS_PERSONAL:
+                    yolact_preds = crop_masks(yolact_preds, h, w)
+                
             if SEGMENT_SAMPLE:
                 with torch.no_grad():
                     sampleYolact()
-                exit()
+
+            #prepare dict for the resulting preds masks
+            #results[img_dict['id']] = {}
+            camera_results[img_dict['id']] = {}
 
             if SEGMENT_EVERYTHING:
                 sa_masks = segmentEverything(img_path, anything_generator)
-                image = cv2.imread(img_path)
-                plt.imshow(image)
-                show_anns(sa_masks)
-                plt.savefig('testerOutput/SegmentAnything_image.png')
+                if SAVE_SA:
+                    if SAVE_PLOTS:
+                        #prep_path(sa_path, img_dict['file_name'])
+                        axs[0].imshow(image)
+                        img = show_anns(sa_masks)
+                        axs[0].imshow(img)
+                        axs[0].axis('off')
+                        axs[0].set_title('Segment-Anything Predictions')
+                    else:
+                        prep_path(sa_path, img_dict['file_name'])
+                        plt.imshow(image)
+                        img = show_anns(sa_masks)
+                        plt.imshow(img)
+                        plt.savefig(sa_path + '/' + img_dict['file_name'])
+
+
+                #plt.imshow(image)
+                #show_anns(sa_masks)
+                #plt.savefig('testerOutput/SegmentAnything_image.png')
                 result_masks = []
-                for i,yolact_pred in enumerate(yolact_preds):
+                for k,yolact_pred in enumerate(yolact_preds):
+                    if len(yolact_pred['blobs']) == 0:
+                        continue
                     result_mask = iou_filter(yolact_pred['blobs'], sa_masks)
-                    mask_rgb = (cv2.cvtColor(result_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255, 0, 0], dtype=np.uint8)
-                    result = cv2.addWeighted(image, 1.0, mask_rgb, 0.5, 0)
-                    cv2.imwrite('testerOutput/filteredImages_' + str(i) + '.png', result)
-                exit()
+                    result_mask_bool = result_mask.astype(bool)
+                    mask_rgb = (cv2.cvtColor(result_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
+                    
+                    gt_mask = np.zeros((h, w), dtype=np.uint8)
+                    # Draw each polygon on the mask
+                    for polygon in mask_dict['segmentation']:
+                        rle = maskUtils.frPyObjects([polygon], h, w)
+                        m = maskUtils.decode(rle)
+                        gt_mask = np.maximum(gt_mask, m[:,:,0])
+                    gt_mask_bool = gt_mask.astype(bool)
+                    gt_mask_rgb = (cv2.cvtColor(gt_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,255,0], dtype=np.uint8)
+                    
+                    and_mask_bool = np.logical_and(result_mask_bool, gt_mask_bool)
+                    and_mask_rgb = (cv2.cvtColor(and_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,0,0], dtype=np.uint8)
+                    
+                    result_image = cv2.addWeighted(image, 1.0, and_mask_rgb, 0.5, 0)
+                    result_image = cv2.addWeighted(image, 1.0, mask_rgb, 0.5, 0)
+                    result_image = cv2.addWeighted(result_image, 1.0, gt_mask_rgb, 0.5, 0)
+
+                    result_pred_path = img_results_path.replace('.png', '_' + str(k) + '.png')
+                    if SAVE_PLOTS:
+                        result_image = cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB)
+                        axs[2].imshow(result_image)
+                        axs[2].axis('off')
+                        axs[2].set_title('Final mask')
+
+                        #plt.savefig(result_pred_path, bbox_inches='tight', dpi=300)
+                        #plt.close(fig)
+                    else:
+                        cv2.imwrite(result_pred_path, result_image)
+                    masks_iou = round(calculateIoU(gt_mask_bool, result_mask), 2)
+                    camera_results[img_dict['id']][str(k)] = {
+                        'file_name' : '',#img_dict['file_name'],
+                        'masks_image_name' : '',#result_pred_path,
+                        'class' : int(yolact_pred['class']),
+                        'iou' : masks_iou
+                        #leave out the masks for now
+                    }
+                    #fig.suptitle('IoU(Generated Mask, Ground Truth Mask) = ' + str(masks_iou), fontsize=10, x=0.5, y=0.05)
+                    plt.figtext(0.5, 0.01, 'IoU(Generated Mask, Ground Truth Mask) = ' + str(masks_iou), fontsize=10, ha='center')
+                    plt.savefig(result_pred_path, bbox_inches='tight', dpi=300)
+                    plt.close(fig)
+                    #camera_results[img_dict['id']][str(k)] = results[img_dict['id']][str(k)]
+            end_time = time.time()
+            print(' | Processing time: ' + str(int(end_time - start_time)) + 's' , flush=True)
+
+        f = open(temp_results_path + '/' + results_dir + '/camera_' + camera + '.json', 'w')
+        #print(camera_results)
+        #print(type(camera_results))
+        json.dump(camera_results, f, indent=2)
+        f.close()
+
+    #f = open(temp_results_path + '/' + results_dir + '/all_results.json', 'w')
+    #f.write(json.dumps(results))
+    #f.close()
 
     print('OK!')
 
