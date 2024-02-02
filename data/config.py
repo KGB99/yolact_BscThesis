@@ -151,6 +151,28 @@ train_ssd_amodal = dataset_base.copy({
     'label_map' : None
 })
 
+test_pbr_random_lighting = dataset_base.copy({
+    'name' : 'test_pbr_random_lighting',
+    'train_images' : '',
+    'train_info' : '',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/pbr_random_lighting',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/test_pbr_random/test_labels/amodal/test_annotations.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : None
+})  
+
+train_pbr_random_and_kinect = dataset_base.copy({
+    'name' : 'train_pbr_random_and_kinect',
+    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop',
+    'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/train_pbr_random_and_kinect/train_labels/amodal/train_annotations.json',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/train_pbr_random_and_kinect/train_labels/amodal/val_annotations.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : None
+})  
+
 test_all = dataset_base.copy({
     'name' : 'medical_test_ssd',
     'train_images' : '',
@@ -848,6 +870,40 @@ medical_all_resnet50_config = yolact_base_config.copy({
     'dataset': medical_all,
     'num_classes': len(medical_all.class_names) + 1,
     'max_iter' : 500,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+train_pbr_random_and_kinect_20000 = yolact_base_config.copy({
+    'name' : 'pbr_random_and_kinect',
+    # Dataset stuff
+    'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 20000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+train_pbr_random_and_kinect_1500 = yolact_base_config.copy({
+    'name' : 'pbr_random_and_kinect', 
+    # Dataset stuff
+    'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 1500,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
         

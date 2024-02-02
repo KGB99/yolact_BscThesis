@@ -142,8 +142,8 @@ class COCODetection(data.Dataset):
         #print("Image path is: " + str(path))
         
         img = cv2.imread(path)
-        height, width, _ = img.shape        
-        
+        height, width, _ = img.shape     
+
         if len(target) > 0:
             # Pool all the masks for this image into one [num_objects,height,width] matrix
             masks = [self.coco.annToMask(obj).reshape(-1) for obj in target]
