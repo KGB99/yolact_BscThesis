@@ -516,13 +516,14 @@ class PhotometricDistort(object):
 
     def __call__(self, image, masks, boxes, labels):
         im = image.copy()
+        cv2.imwrite("./testerOutput/pre_augmentation.png", im)
         im, masks, boxes, labels = self.rand_brightness(im, masks, boxes, labels)
         if random.randint(2):
             distort = Compose(self.pd[:-1])
         else:
             distort = Compose(self.pd[1:])
         im, masks, boxes, labels = distort(im, masks, boxes, labels)
-        cv2.imwrite("./testerOutput/image_augmentation.png", im)
+        cv2.imwrite("./testerOutput/post_augmentation.png", im)
         return self.rand_light_noise(im, masks, boxes, labels)
 
 class PrepareMasks(object):
