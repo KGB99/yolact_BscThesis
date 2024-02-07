@@ -164,9 +164,9 @@ test_pbr_random_lighting = dataset_base.copy({
 
 train_pbr_random_and_kinect = dataset_base.copy({
     'name' : 'train_pbr_random_and_kinect',
-    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop',
+    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
     'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/train_pbr_random_and_kinect/train_labels/amodal/train_annotations.json',
-    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
     'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/train_pbr_random_and_kinect/train_labels/amodal/val_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
