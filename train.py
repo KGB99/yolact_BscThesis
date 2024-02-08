@@ -655,7 +655,24 @@ def setup_eval():
     eval_script.parse_args(['--no_bar', '--max_images='+str(args.validation_size)])
 
 if __name__ == '__main__':
-    train()
+    WANDB = True
+    try:
+        if WANDB:
+            wandb.init(
+                project = 'BscThesis',
+
+                config= {
+                    'learning-rate' : cfg.lr,
+                    'architecture' : args.config,
+                    'dataset' : cfg.dataset,
+                    'iterations' : cfg.max_iter, 
+                }
+            )
+        train()
+    finally:    
+        #finish wandb, unsure if this is actually necessary
+        if WANDB:
+            wandb.finish()
     """
     try:
         # initialize wandb
