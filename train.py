@@ -603,38 +603,7 @@ def compute_validation_loss(net, data_loader, criterion):
         print(('Validation ||' + (' %s: %.3f |' * len(losses)) + ')') % tuple(loss_labels), flush=True)
 """
 
-"""
-class ScatterWrapper:
-    #Input is any number of lists. This will preserve them through a dataparallel scatter.
 
-    def __init__(self, *args):
-        for arg in args:
-            if not isinstance(arg, list):
-                print('Warning: ScatterWrapper got input of non-list type.')
-        self.args = args
-        self.batch_size = len(args[0])
-
-    def make_mask(self):
-        out = torch.Tensor(list(range(self.batch_size))).long()
-        if args.cuda:
-            return out.cuda()
-        else:
-            return out
-
-    def get_args(self, mask):
-        device = mask.device
-        mask = [int(x) for x in mask]
-        out_args = [[] for _ in self.args]
-
-        for out, arg in zip(out_args, self.args):
-            for idx in mask:
-                x = arg[idx]
-                if isinstance(x, torch.Tensor):
-                    x = x.to(device)
-                out.append(x)
-
-        return out_args
-"""
 
 def compute_validation_map(epoch, iteration, yolact_net, dataset, log:Log=None):
     with torch.no_grad():
