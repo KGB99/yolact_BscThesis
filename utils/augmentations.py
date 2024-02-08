@@ -8,7 +8,6 @@ from math import sqrt
 
 from data import cfg, MEANS, STD
 
-
 def intersect(box_a, box_b):
     max_xy = np.minimum(box_a[:, 2:], box_b[2:])
     min_xy = np.maximum(box_a[:, :2], box_b[:2])
@@ -176,18 +175,20 @@ class Resize(object):
         boxes = boxes[keep]
         labels['labels'] = labels['labels'][keep]
         labels['num_crowds'] = (labels['labels'] < 0).sum()
-
+        
         return image, masks, boxes, labels
 
 
 class RandomSaturation(object):
-    def __init__(self, lower=0.5, upper=1.5):
+    # old value of lower was 0.5
+    def __init__(self, lower=0.0, upper=1.5):
         self.lower = lower
         self.upper = upper
         assert self.upper >= self.lower, "contrast upper must be >= lower."
         assert self.lower >= 0, "contrast lower must be non-negative."
 
     def __call__(self, image, masks=None, boxes=None, labels=None):
+        #image[:,:,1] *= 0
         if random.randint(2):
             image[:, :, 1] *= random.uniform(self.lower, self.upper)
 
@@ -448,6 +449,7 @@ class RandomMirror(object):
             masks = masks[:, :, ::-1]
             boxes = boxes.copy()
             boxes[:, 0::2] = width - boxes[:, 2::-2]
+        cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_b.png', image)
         return image, masks, boxes, labels
 
 
@@ -472,6 +474,7 @@ class RandomRot90(object):
         for _ in range(k):
             boxes = np.array([[box[1], old_width - 1 - box[2], box[3], old_width - 1 - box[0]] for box in boxes])
             old_width, old_height = old_height, old_width
+        
         return image, masks, boxes, labels
 
 
@@ -516,14 +519,14 @@ class PhotometricDistort(object):
 
     def __call__(self, image, masks, boxes, labels):
         im = image.copy()
-        cv2.imwrite("./testerOutput/pre_augmentation.png", im)
+        #cv2.imwrite("./testerOutput/pre_augmentation.png", im)
         im, masks, boxes, labels = self.rand_brightness(im, masks, boxes, labels)
         if random.randint(2):
             distort = Compose(self.pd[:-1])
         else:
             distort = Compose(self.pd[1:])
         im, masks, boxes, labels = distort(im, masks, boxes, labels)
-        cv2.imwrite("./testerOutput/post_augmentation.png", im)
+        #cv2.imwrite("./testerOutput/augmentations/post_augmentation.png", im)
         return self.rand_light_noise(im, masks, boxes, labels)
 
 class PrepareMasks(object):
@@ -665,11 +668,12 @@ def do_nothing(img=None, masks=None, boxes=None, labels=None):
 
 def enable_if(condition, obj):
     return obj if condition else do_nothing
-
+COUNTER = 0
 class SSDAugmentation(object):
     """ Transform to be used when training. """
-
+    
     def __init__(self, mean=MEANS, std=STD):
+        
         self.augment = Compose([
             ConvertFromInts(),
             ToAbsoluteCoords(),
@@ -687,4 +691,10 @@ class SSDAugmentation(object):
         ])
 
     def __call__(self, img, masks, boxes, labels):
-        return self.augment(img, masks, boxes, labels)
+        global COUNTER
+        cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_a.png', img)
+        result = self.augment(img, masks, boxes, labels)
+        COUNTER = COUNTER + 1
+        #print(type(result))
+        #cv2.imwrite('./testerOutput/post_entire_aug.png', result[0])
+        return result
