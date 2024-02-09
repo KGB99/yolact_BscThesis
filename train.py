@@ -295,7 +295,10 @@ def train():
                 # Stop at the configured number of iterations even if mid-epoch
                 if iteration == cfg.max_iter:
                     break
-
+                
+                #for augmentation debug
+                exit() 
+                
                 # Change a config setting if we've reached the specified iteration
                 changed = False
                 for change in cfg.delayed_settings:
@@ -624,7 +627,7 @@ def setup_eval():
     eval_script.parse_args(['--no_bar', '--max_images='+str(args.validation_size)])
 
 if __name__ == '__main__':
-    WANDB = True
+    WANDB = False
     try:
         if WANDB:
             wandb.init(
