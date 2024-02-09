@@ -181,17 +181,20 @@ class Resize(object):
 
 class RandomSaturation(object):
     # old value of lower was 0.5
-    def __init__(self, lower=0.0, upper=1.5):
+    def __init__(self, lower=0.1, upper=1.5):
         self.lower = lower
         self.upper = upper
         assert self.upper >= self.lower, "contrast upper must be >= lower."
         assert self.lower >= 0, "contrast lower must be non-negative."
 
     def __call__(self, image, masks=None, boxes=None, labels=None):
-        #image[:,:,1] *= 0
         if random.randint(2):
-            image[:, :, 1] *= random.uniform(self.lower, self.upper)
-
+            if random.randint(10):
+                image[:, :, 1] *= random.uniform(self.lower, self.upper)
+            else:
+                # we have a 0.1 * 0.5 percent chance that the image will become grayscale 
+                image[:, :, 1] *= 0
+        #image[:,:,1] *= 1.5
         return image, masks, boxes, labels
 
 
