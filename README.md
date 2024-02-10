@@ -242,3 +242,12 @@ For YOLACT++, please cite
 
 # Contact
 For questions about our paper or code, please contact [Daniel Bolya](mailto:dbolya@ucdavis.edu).
+
+# Losses Key:
+- B: Box Localization Loss
+- C: Class Confidence Loss
+- M: Mask Loss
+- P: Prototype Loss
+- D: Coefficient Diversity Loss
+- E: Class Existence Loss
+- S: Semantic Segmentation Loss
