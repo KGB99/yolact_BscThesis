@@ -468,7 +468,8 @@ class RandomMirror(object):
             masks = masks[:, :, ::-1]
             boxes = boxes.copy()
             boxes[:, 0::2] = width - boxes[:, 2::-2]
-        #cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_b.png', image)
+        if COUNTER < 100:
+            cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_b.png', image)
         return image, masks, boxes, labels
 
 
@@ -529,7 +530,7 @@ class PhotometricDistort(object):
             RandomContrast(),
             ConvertColor(transform='HSV'),
             RandomSaturation(),
-            RandomHue(),
+            RandomHue(delta=cfg.hue_delta),
             ConvertColor(current='HSV', transform='BGR'),
             RandomContrast()
         ]
@@ -715,7 +716,8 @@ class SSDAugmentation(object):
 
     def __call__(self, img, masks, boxes, labels):
         global COUNTER
-        #cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_a.png', img)
+        if COUNTER < 100:
+            cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_a.png', img)
         result = self.augment(img, masks, boxes, labels)
         COUNTER = COUNTER + 1
         #print(type(result))
