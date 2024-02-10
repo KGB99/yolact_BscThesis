@@ -204,8 +204,9 @@ class RandomHue(object):
         self.delta = delta
 
     def __call__(self, image, masks=None, boxes=None, labels=None):
-        if random.randint(2):
-            image[:, :, 0] += random.uniform(-self.delta, self.delta)
+        if (random.randint(2) + 1):
+            #image[:, :, 0] += random.uniform(-self.delta, self.delta)
+            image[:, :, 0] += -180
             image[:, :, 0][image[:, :, 0] > 360.0] -= 360.0
             image[:, :, 0][image[:, :, 0] < 0.0] += 360.0
         return image, masks, boxes, labels
