@@ -163,4 +163,4 @@ wandb/
 slurm*
 testerOutput
 SA_models
-myenv
+myenv/
