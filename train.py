@@ -651,6 +651,7 @@ if __name__ == '__main__':
                 project = 'BscThesis',
 
                 config= {
+                    'config_name' : cfg.name,
                     'learning-rate' : cfg.lr,
                     'architecture' : args.config,
                     'dataset' : cfg.dataset,
