@@ -5,6 +5,7 @@ import numpy as np
 import types
 from numpy import random
 from math import sqrt
+import imgaug.augmenters as iaa
 
 from data import cfg, MEANS, STD
 
@@ -205,8 +206,8 @@ class RandomHue(object):
 
     def __call__(self, image, masks=None, boxes=None, labels=None):
         if (random.randint(2) + 1):
-            #image[:, :, 0] += random.uniform(-self.delta, self.delta)
-            image[:, :, 0] += -180
+            image[:, :, 0] += random.uniform(-self.delta, self.delta)
+            #image[:, :, 0] += -180
             image[:, :, 0][image[:, :, 0] > 360.0] -= 360.0
             image[:, :, 0][image[:, :, 0] < 0.0] += 360.0
         return image, masks, boxes, labels
@@ -225,6 +226,20 @@ class RandomLightingNoise(object):
         #     swap = self.perms[random.randint(len(self.perms))]
         #     shuffle = SwapChannels(swap)  # shuffle channels
         #     image = shuffle(image)
+        
+        # to cast to uint8 without alterations from float32 we need to do two checks:
+        #check1= check that 0 <= x <= 255
+        check1 = np.all((image >= 0) & (image <= 255))
+        #check2 = check that theres no decimals
+        check2 = np.all(image == np.floor(image))
+        print("hello")
+        print(check1)
+        print(check2)
+        if (check1 & check2):
+            print("adding noise")
+            image_uint8 = image.astype(uint8)
+            aug = iaa.imgcorruptlike.GaussianNoise(severity = 5)
+            image = ((aug(images=[image_uint8]))[0]).astype(float32)
         return image, masks, boxes, labels
 
 
@@ -453,7 +468,7 @@ class RandomMirror(object):
             masks = masks[:, :, ::-1]
             boxes = boxes.copy()
             boxes[:, 0::2] = width - boxes[:, 2::-2]
-        cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_b.png', image)
+        #cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_b.png', image)
         return image, masks, boxes, labels
 
 
@@ -682,6 +697,7 @@ class SSDAugmentation(object):
     def __init__(self, mean=MEANS, std=STD):
         
         self.augment = Compose([
+            #enable_if(cfg.augment_noise, RandomLightingNoise()),
             ConvertFromInts(),
             ToAbsoluteCoords(),
             enable_if(cfg.augment_photometric_distort, PhotometricDistort()),
@@ -699,7 +715,7 @@ class SSDAugmentation(object):
 
     def __call__(self, img, masks, boxes, labels):
         global COUNTER
-        cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_a.png', img)
+        #cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_a.png', img)
         result = self.augment(img, masks, boxes, labels)
         COUNTER = COUNTER + 1
         #print(type(result))
