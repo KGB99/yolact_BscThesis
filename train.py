@@ -297,7 +297,7 @@ def train():
                     break
                 
                 #for augmentation debug
-                exit() 
+                #exit() 
                 
                 # Change a config setting if we've reached the specified iteration
                 changed = False
@@ -361,6 +361,11 @@ def train():
                     
                     total = sum([loss_avgs[k].get_avg() for k in losses])
                     loss_labels = sum([[k, loss_avgs[k].get_avg()] for k in loss_types if k in losses], [])
+                    if WANDB:
+                        loss_dict = {}
+                        for k in losses:
+                            loss_dict['moving_avg_loss_' + k] = round(loss_avgs[k].get_avg(),5)
+                        wandb.log(loss_dict, step=iteration)
                     
                     print(('Epoch: %3d | Iteration %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f')
                             % tuple([epoch, iteration] + loss_labels + [total, eta_str, elapsed]), flush=True)
@@ -370,7 +375,13 @@ def train():
                     precision = 5
                     loss_info = {k: round(losses[k].item(), precision) for k in losses}
                     loss_info['T'] = round(loss.item(), precision)
-
+                    if WANDB:
+                        loss_dict = {}
+                        loss_dict = {'loss_'+k: round(losses[k].item(),precision) for k in losses}
+                        loss_dict['loss_T'] = round(loss.item(), precision)
+                        wandb.log(loss_dict, step=iteration)
+                    
+                    
                     if args.log_gpu:
                         log.log_gpu_stats = (iteration % 10 == 0) # nvidia-smi is sloooow
                         
@@ -379,7 +390,7 @@ def train():
 
                     log.log_gpu_stats = args.log_gpu
                 
-                #also compute validation loss every 100 iterations
+                #also compute validation loss every 3000 iterations
                 if iteration > 0 and iteration % 3000 == 0:
                     compute_validation_loss(net, val_data_loader, log, epoch, iteration)
 
@@ -493,15 +504,21 @@ def compute_validation_loss(net, data_loader, log : Log, epoch, i):
 
         print(val_loss_avg)
         log.log('val-loss', val_loss=val_loss_avg, epoch=epoch, iter=i, elapsed=(end_time - start_time))
+        
+        if WANDB:
+            loss_dict = {}
+            for k in val_loss_avg:
+                loss_dict['val_'+k] = val_loss_avg[k]
+            wandb.log(loss_dict, step=i)
             
-        f = open('problematic_datums.txt', 'a')
-        f.write('\n\n------------------------------------------------')
-        f.write('\n\nNEW CALCULATION ITERATION \n\n')
-        f.write('------------------------------------------------')
+        #f = open('problematic_datums.txt', 'a')
+        #f.write('\n\n------------------------------------------------')
+        #f.write('\n\nNEW CALCULATION ITERATION \n\n')
+        #f.write('------------------------------------------------')
 
-        f.write('Nr. Problematic Datums: ' + str(len(problematic_datums)) + '\n\n')
-        f.write(str(problematic_datums))
-        f.close()
+        #f.write('Nr. Problematic Datums: ' + str(len(problematic_datums)) + '\n\n')
+        #f.write(str(problematic_datums))
+        #f.close()
         #net.train()
     
 
@@ -627,7 +644,7 @@ def setup_eval():
     eval_script.parse_args(['--no_bar', '--max_images='+str(args.validation_size)])
 
 if __name__ == '__main__':
-    WANDB = False
+    WANDB = True
     try:
         if WANDB:
             wandb.init(
