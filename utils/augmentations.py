@@ -531,7 +531,10 @@ class PhotometricDistort(object):
             distort = Compose(self.pd[1:])
         im, masks, boxes, labels = distort(im, masks, boxes, labels)
         #cv2.imwrite("./testerOutput/augmentations/post_augmentation.png", im)
-        return self.rand_light_noise(im, masks, boxes, labels)
+        if cfg.augment_noise:
+            return self.rand_light_noise(im, masks, boxes, labels)
+        else:
+            return im, masks, boxes, labels
 
 class PrepareMasks(object):
     """
