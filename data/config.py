@@ -917,6 +917,24 @@ train_pbr_random_and_kinect_40000 = yolact_base_config.copy({
     }),
 })
 
+train_pbr_random_and_kinect_hue_40000 = yolact_base_config.copy({
+    'name' : 'pbr_random_and_kinect_aug_hue',
+    'hue_delta' : 50, # was at 100 for the previous hue iteration
+    # Dataset stuff
+    'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 40000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
 train_pbr_random_and_kinect_1500 = yolact_base_config.copy({
     'name' : 'pbr_random_and_kinect', 
     # Dataset stuff
