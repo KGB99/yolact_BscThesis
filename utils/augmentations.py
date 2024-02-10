@@ -69,6 +69,7 @@ class Lambda(object):
 
 class ConvertFromInts(object):
     def __call__(self, image, masks=None, boxes=None, labels=None):
+        print(type(image[0][0]))
         return image.astype(np.float32), masks, boxes, labels
 
 
@@ -698,7 +699,7 @@ class SSDAugmentation(object):
     def __init__(self, mean=MEANS, std=STD):
         
         self.augment = Compose([
-            #enable_if(cfg.augment_noise, RandomLightingNoise()),
+            enable_if(cfg.augment_noise, RandomLightingNoise()),
             ConvertFromInts(),
             ToAbsoluteCoords(),
             enable_if(cfg.augment_photometric_distort, PhotometricDistort()),
