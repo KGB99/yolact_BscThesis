@@ -69,7 +69,6 @@ class Lambda(object):
 
 class ConvertFromInts(object):
     def __call__(self, image, masks=None, boxes=None, labels=None):
-        print(type(image[0][0]))
         return image.astype(np.float32), masks, boxes, labels
 
 
@@ -230,17 +229,20 @@ class RandomLightingNoise(object):
         
         # to cast to uint8 without alterations from float32 we need to do two checks:
         #check1= check that 0 <= x <= 255
-        check1 = np.all((image >= 0) & (image <= 255))
+        #check1 = np.all((image >= 0) & (image <= 255))
         #check2 = check that theres no decimals
-        check2 = np.all(image == np.floor(image))
-        print("hello")
-        print(check1)
-        print(check2)
-        if (check1 & check2):
-            print("adding noise")
-            image_uint8 = image.astype(uint8)
-            aug = iaa.imgcorruptlike.GaussianNoise(severity = 5)
-            image = ((aug(images=[image_uint8]))[0]).astype(float32)
+        #check2 = np.all(image == np.floor(image))
+        #print("hello")
+        #print(check1)
+        #print(check2)
+        #if (check1 & check2):
+        #    print("adding noise")
+            #image_uint8 = image.astype(np.uint8)
+        if random.randint(2):
+            noise_severity = random.randint(low=1, high=3)
+            aug = iaa.imgcorruptlike.GaussianNoise(severity = 2)
+        #image = ((aug(images=[image_uint8]))[0])#.astype(np.float32)
+            image = ((aug(images=[image]))[0])
         return image, masks, boxes, labels
 
 
@@ -548,10 +550,10 @@ class PhotometricDistort(object):
             distort = Compose(self.pd[1:])
         im, masks, boxes, labels = distort(im, masks, boxes, labels)
         #cv2.imwrite("./testerOutput/augmentations/post_augmentation.png", im)
-        if cfg.augment_noise:
-            return self.rand_light_noise(im, masks, boxes, labels)
-        else:
-            return im, masks, boxes, labels
+        #if cfg.augment_noise:
+        #    return self.rand_light_noise(im, masks, boxes, labels)
+        #else:
+        return im, masks, boxes, labels
 
 class PrepareMasks(object):
     """
@@ -699,7 +701,8 @@ class SSDAugmentation(object):
     def __init__(self, mean=MEANS, std=STD):
         
         self.augment = Compose([
-            enable_if(cfg.augment_noise, RandomLightingNoise()),
+            #enable_if(cfg.augment_noise, RandomLightingNoise()),
+            #prior to calling convertfrom ints we have np.uint8 elems, afterwards theyre np.float32 elems
             ConvertFromInts(),
             ToAbsoluteCoords(),
             enable_if(cfg.augment_photometric_distort, PhotometricDistort()),
