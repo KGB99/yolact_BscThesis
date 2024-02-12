@@ -332,9 +332,9 @@ SAVE_YOLACT_PREDS = True
 SAVE_SA = True
 SAVE_PLOTS = True # TODO: add details to plots like iou and legend
 MAX_IMAGE = 0 # max amount of images per folder, set to 0 for all
-USE_PRECALC_SA = True # set true if precalculated pickle files from Segment anything exist
-CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process
-CREATE_TRAINING_LABELS = True # Write true if you want to create training labels for yolact with generated masks
+USE_PRECALC_SA = False # set true if precalculated pickle files from Segment anything exist
+CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
+CREATE_TRAINING_LABELS = False # Write true if you want to create training labels for yolact with generated masks
 
 if __name__ == '__main__':
     
@@ -441,9 +441,9 @@ if __name__ == '__main__':
         if ((not passed) & ((i+1) < start_cam)):
             continue
 
-        print("BEWARE: USING CHOSEN SCENES FROM CODE! NO OTHER CAMERA ANGLES WILL BE PROCESSED!")
-        if not (camera in CHOSEN_SCENES):
-            continue
+        #print("BEWARE: USING CHOSEN SCENES FROM CODE! NO OTHER CAMERA ANGLES WILL BE PROCESSED!")
+        #if not (camera in CHOSEN_SCENES):
+        #    continue
 
         camera_dict = coco_dict[camera]
         len_camera_dict = len(camera_dict)
@@ -649,12 +649,13 @@ if __name__ == '__main__':
                     #fig.suptitle('IoU(Generated Mask, Ground Truth Mask) = ' + str(masks_iou), fontsize=10, x=0.5, y=0.05)
                     #plt.figtext(0.5, 0.01, 'IoU(Generated Mask, Ground Truth Mask) = ' + str(masks_iou), fontsize=10, ha='center')
                     plt.savefig(result_pred_path, bbox_inches='tight', dpi=300)
-                    plt.close('all')
+                    
                     if CREATE_TRAINING_LABELS:
                         gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
                         cv2.imwrite('./testerOutput/generated_mask_final.png', gen_mask_final)
                         exit()
                     #camera_results[img_dict['id']][str(k)] = results[img_dict['id']][str(k)]
+                plt.close('all')
                 results_time_end = time.time()
                 print(' Storing=' + str(int(results_time_end - results_time_begin)) + 's' , end='')
             end_time = time.time()
