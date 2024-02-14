@@ -79,6 +79,7 @@ parser.add_argument('--batch_alloc', default=None, type=str,
                     help='If using multiple GPUS, you can set this to be a comma separated list detailing which GPUs should get what local batch size (It should add up to your total batch size).')
 parser.add_argument('--no_autoscale', dest='autoscale', action='store_false',
                     help='YOLACT will automatically scale the lr and the number of iterations depending on the batch size. Set this if you want to disable that.')
+parser.add_argument('--refinement_mode', default=False, required=False, type=bool, help='for the refinement training of real data on a pretrained pbr model')
 
 parser.set_defaults(keep_latest=False, log=True, log_gpu=False, interrupt=True, autoscale=True)
 args = parser.parse_args()
@@ -178,6 +179,11 @@ def train():
                             info_file=cfg.dataset.train_info,
                             transform=SSDAugmentation(MEANS))
     
+    if args.refinement_mode:
+        refinement_dataset = COCODetection(image_path = cfg.dataset.refinement_images,
+                                           info_fil=cfg.dataset.refinement_info,
+                                           transform=SSDAugmentation(MEANS))
+    
     if args.validation_epoch > 0:
         setup_eval()
         val_dataset = COCODetection(image_path=cfg.dataset.valid_images,
@@ -254,6 +260,13 @@ def train():
                                   shuffle=True, collate_fn=detection_collate,
                                   pin_memory=True,
                                   generator=torch.Generator(device='cuda'))
+    
+    if args.refinement_mode:
+        real_data_loader = data.DataLoader(refinement_dataset, args.batch_size,
+                                           num_workers=args.num_workers,
+                                           shuffle=True, collate_fn=detection_collate,
+                                           pin_memory=True,
+                                           generator=torch.Generator(device='cuda'))
     
     # need a second data loader for the validation set
     # note that the val_dataset uses BaseTransform as transformation, not SSDAugmentation like during training
