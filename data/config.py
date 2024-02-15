@@ -173,6 +173,17 @@ train_pbr_random_and_kinect = dataset_base.copy({
     'label_map' : None
 })  
 
+refinement_real_100 = dataset_base.copy({
+    'name' : 'refinement_real_100',
+    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/refinement_real/train_labels/amodal/train_annotations.json',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/refinement_real/train_labels/amodal/val_annotations.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : None
+})  
+
 test_all = dataset_base.copy({
     'name' : 'medical_test_ssd',
     'train_images' : '',
@@ -947,6 +958,29 @@ train_pbr_random_and_kinect_hue_noise_40000 = yolact_base_config.copy({
     
     # Dataset stuff
     'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 40000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+refinement_pbr_kinect_random_real_1000 = yolact_base_config.copy({
+    'name' : 'pbr_random_and_kinect_aug_hue',
+    
+    #augmentation stuff
+    'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : True,
+    
+    # Dataset stuff
+    'dataset': train_pbr_random_and_kinect,
+    'real_dataset': refinement_real_100,
     'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
     'max_iter' : 40000,
     'backbone': resnet50_backbone.copy({
