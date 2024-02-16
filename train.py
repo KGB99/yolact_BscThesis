@@ -81,6 +81,7 @@ parser.add_argument('--no_autoscale', dest='autoscale', action='store_false',
                     help='YOLACT will automatically scale the lr and the number of iterations depending on the batch size. Set this if you want to disable that.')
 parser.add_argument('--refinement_mode', default=False, required=False, type=bool, help='for the refinement training of real data on a pretrained pbr model')
 parser.add_argument('--refinement_iterations', default=1000, required=False, type=int, help='iterations for refinement')
+parser.add_argument('--start_epoch', default=0, required=False, type=int)
 
 parser.set_defaults(keep_latest=False, log=True, log_gpu=False, interrupt=True, autoscale=True)
 args = parser.parse_args()
@@ -180,7 +181,7 @@ def refinement_training():
                             info_file=cfg.dataset.train_info,
                             transform=SSDAugmentation(MEANS))
     
-    refinement_dataset = COCODetection(image_path = cfg.dataset.refinement_images,
+    real_dataset = COCODetection(image_path = cfg.dataset.refinement_images,
                                         info_fil=cfg.dataset.refinement_info,
                                         transform=SSDAugmentation(MEANS))
     
@@ -247,7 +248,7 @@ def refinement_training():
     iteration = max(args.start_iter, 0)
     last_time = time.time()
     print("Number of iterations: " + str(iteration))
-    epoch_size = len(dataset) // args.batch_size
+    epoch_size = len(real_dataset) // args.batch_size
     num_epochs = math.ceil(cfg.max_iter / epoch_size)
     #print("size per epoch: " + str(epoch_size))
     #print("number of epochs: " + str(num_epochs))
@@ -263,7 +264,7 @@ def refinement_training():
     pbr_iterator = iter(pbr_data_loader)
 
     
-    real_data_loader = data.DataLoader(refinement_dataset, args.batch_size,
+    real_data_loader = data.DataLoader(real_dataset, args.batch_size,
                                         num_workers=args.num_workers,
                                         shuffle=True, collate_fn=detection_collate,
                                         pin_memory=True,
@@ -292,7 +293,8 @@ def refinement_training():
     print()
     # try-except so you can use ctrl+c to save early and stop training
     try:
-        epoch=0
+        #for epoch in range(num_epochs):
+        epoch=args.start_epoch
         while(True):
 
             # Resume from start_iter
@@ -302,7 +304,8 @@ def refinement_training():
             #print("DEBUGGING VAL LOSS")
             #compute_validation_loss(net, val_data_loader, log, epoch)
             
-            #for datum in data_loader:
+            #for datum in real_data_loader:
+            #    if False:
             if np.random.rand() < cfg.ratio_pbr_to_real:
                 try:
                     datum = next(pbr_iterator)
@@ -315,7 +318,7 @@ def refinement_training():
                 except StopIteration:
                     real_iterator = iter(real_data_loader)
                     datum = next(real_data_loader)
-            
+        
 
             
             # Stop if we've reached an epoch if we're resuming from start_iter
@@ -470,11 +473,6 @@ def train():
                             info_file=cfg.dataset.train_info,
                             transform=SSDAugmentation(MEANS))
     
-    if args.refinement_mode:
-        refinement_dataset = COCODetection(image_path = cfg.dataset.refinement_images,
-                                           info_fil=cfg.dataset.refinement_info,
-                                           transform=SSDAugmentation(MEANS))
-    
     if args.validation_epoch > 0:
         setup_eval()
         val_dataset = COCODetection(image_path=cfg.dataset.valid_images,
@@ -551,13 +549,6 @@ def train():
                                   shuffle=True, collate_fn=detection_collate,
                                   pin_memory=True,
                                   generator=torch.Generator(device='cuda'))
-    
-    if args.refinement_mode:
-        real_data_loader = data.DataLoader(refinement_dataset, args.batch_size,
-                                           num_workers=args.num_workers,
-                                           shuffle=True, collate_fn=detection_collate,
-                                           pin_memory=True,
-                                           generator=torch.Generator(device='cuda'))
     
     # need a second data loader for the validation set
     # note that the val_dataset uses BaseTransform as transformation, not SSDAugmentation like during training
@@ -964,10 +955,10 @@ if __name__ == '__main__':
                     'iterations' : cfg.max_iter, 
                 }
             )
-        if args.refinement_node:
-            refinement_training()
-        else:
-            train()
+        #if args.refinement_node:
+        #    refinement_training()
+        #else:
+        train()
     finally:    
         #finish wandb, unsure if this is actually necessary
         if WANDB:
