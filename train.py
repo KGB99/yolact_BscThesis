@@ -181,8 +181,8 @@ def refinement_training():
                             info_file=cfg.dataset.train_info,
                             transform=SSDAugmentation(MEANS))
     
-    real_dataset = COCODetection(image_path = cfg.dataset.refinement_images,
-                                        info_fil=cfg.dataset.refinement_info,
+    real_dataset = COCODetection(image_path = cfg.dataset.train_images,
+                                        info_file=cfg.dataset.train_info,
                                         transform=SSDAugmentation(MEANS))
     
     if args.validation_epoch > 0:
