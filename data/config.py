@@ -972,7 +972,7 @@ train_pbr_random_and_kinect_hue_noise_40000 = yolact_base_config.copy({
 })
 
 refinement_pbr_kinect_random_real_1000 = yolact_base_config.copy({
-    'name' : 'pbr_random_and_kinect_aug_hue',
+    'name' : 'pbr_random_and_kinect_refinement_base',
     
     #augmentation stuff
     'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
@@ -980,12 +980,13 @@ refinement_pbr_kinect_random_real_1000 = yolact_base_config.copy({
 
     #configs for refinement stuff
     'lr': 1e-4, #original is 1e-3
+    'ratio_pbr_to_real': 0.5,
     
     # Dataset stuff
     'dataset': train_pbr_random_and_kinect,
     'real_dataset': refinement_real_100,
     'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
-    'max_iter' : 40000,
+    'max_iter' : 25000,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
         

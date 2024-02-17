@@ -247,7 +247,7 @@ def refinement_training():
     conf_loss = 0
     iteration = max(args.start_iter, 0)
     last_time = time.time()
-    print("Number of iterations: " + str(iteration))
+    #print("Number of iterations: " + str(iteration))
     epoch_size = len(real_dataset) // args.batch_size
     num_epochs = math.ceil(cfg.max_iter / epoch_size)
     #print("size per epoch: " + str(epoch_size))
@@ -292,6 +292,8 @@ def refinement_training():
     print('Begin training!')
     print()
     # try-except so you can use ctrl+c to save early and stop training
+    pbr_samples = 0
+    real_samples = 0
     try:
         #for epoch in range(num_epochs):
         epoch=args.start_epoch
@@ -307,18 +309,20 @@ def refinement_training():
             #for datum in real_data_loader:
             #    if False:
             if np.random.randint(0, high=100) < (100 * cfg.ratio_pbr_to_real): 
+                pbr_samples += 1
                 try:
                     datum = next(pbr_iterator)
                 except StopIteration: # incase the dataloader is exhausted
                     pbr_iterator = iter(pbr_data_loader)
                     datum = next(pbr_iterator)
             else:
+                real_samples += 1
                 try:
                     datum = next(real_iterator)
                 except StopIteration: #again incase the dataloader is exhausted
                     real_iterator = iter(real_data_loader)
                     datum = next(real_data_loader)
-        
+            
         
             
             # Stop if we've reached an epoch if we're resuming from start_iter
@@ -401,7 +405,7 @@ def refinement_training():
                     wandb.log(loss_dict, step=iteration)
                 
                 print(('Epoch: %3d | Iteration %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f')
-                        % tuple([iteration] + loss_labels + [total, eta_str, elapsed]), flush=True)
+                        % tuple([epoch,iteration] + loss_labels + [total, eta_str, elapsed]), flush=True)
                 
 
             if args.log:
@@ -444,9 +448,9 @@ def refinement_training():
 
             
             # This is done per epoch
-            if args.validation_epoch > 0:
-                if epoch % args.validation_epoch == 0 and epoch > 0:
-                    compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
+            #if args.validation_epoch > 0:
+            #    if epoch % args.validation_epoch == 0 and epoch > 0:
+            #        compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
         
         print("Training is done! Now computing validation mAP a final time...")
         
@@ -461,7 +465,8 @@ def refinement_training():
             
             yolact_net.save_weights(save_path(epoch, repr(iteration) + '_interrupt'))
         exit()
-
+    print("Sampled Pbr: " + str(pbr_samples))
+    print("Samples Real: " + str(real_samples))
     yolact_net.save_weights(save_path(epoch, iteration))
     return
 
