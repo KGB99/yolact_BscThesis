@@ -176,9 +176,9 @@ train_pbr_random_and_kinect = dataset_base.copy({
 refinement_real_100 = dataset_base.copy({
     'name' : 'refinement_real_100',
     'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/refinement_real/train_labels/amodal/train_annotations.json',
-    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/refinement_real/train_labels/amodal/val_annotations.json',
+    'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/refinement_real/100_labels/train_labels/train_all_annotations.json',
+    'valid_images' : '',
+    'valid_info' : '',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : None
@@ -977,6 +977,9 @@ refinement_pbr_kinect_random_real_1000 = yolact_base_config.copy({
     #augmentation stuff
     'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
     'augment_noise' : True,
+
+    #configs for refinement stuff
+    'lr': 1e-4, #original is 1e-3
     
     # Dataset stuff
     'dataset': train_pbr_random_and_kinect,

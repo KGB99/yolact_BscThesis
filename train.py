@@ -296,7 +296,7 @@ def refinement_training():
         #for epoch in range(num_epochs):
         epoch=args.start_epoch
         while(True):
-
+        
             # Resume from start_iter
             #if (epoch+1)*epoch_size < iteration:
             #    continue
@@ -306,7 +306,7 @@ def refinement_training():
             
             #for datum in real_data_loader:
             #    if False:
-            if np.random.rand() < cfg.ratio_pbr_to_real:
+            if np.random.randint(0, high=100) < (100 * cfg.ratio_pbr_to_real): 
                 try:
                     datum = next(pbr_iterator)
                 except StopIteration: # incase the dataloader is exhausted
@@ -315,11 +315,11 @@ def refinement_training():
             else:
                 try:
                     datum = next(real_iterator)
-                except StopIteration:
+                except StopIteration: #again incase the dataloader is exhausted
                     real_iterator = iter(real_data_loader)
                     datum = next(real_data_loader)
         
-
+        
             
             # Stop if we've reached an epoch if we're resuming from start_iter
             #if iteration == (epoch+1)*epoch_size:
@@ -423,9 +423,9 @@ def refinement_training():
 
                 log.log_gpu_stats = args.log_gpu
             
-            #also compute validation loss every 3000 iterations
-            if iteration > 0 and iteration % 3000 == 0:
-                compute_validation_loss(net, val_data_loader, log, epoch, iteration)
+            #also compute validation loss every 3000 iterations, NOT NECESSARY FOR REFINEMENT
+            #if iteration > 0 and iteration % 3000 == 0:
+            #    compute_validation_loss(net, val_data_loader, log, epoch, iteration)
 
             iteration += 1
 
@@ -955,10 +955,10 @@ if __name__ == '__main__':
                     'iterations' : cfg.max_iter, 
                 }
             )
-        #if args.refinement_node:
-        #    refinement_training()
-        #else:
-        train()
+        if args.refinement_mode:
+            refinement_training()
+        else:
+            train()
     finally:    
         #finish wandb, unsure if this is actually necessary
         if WANDB:
