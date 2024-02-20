@@ -958,6 +958,7 @@ if __name__ == '__main__':
                     'architecture' : args.config,
                     'dataset' : cfg.dataset,
                     'iterations' : cfg.max_iter, 
+                    'ratio_pbr_to_real' : cfg.ratio_pbr_to_real
                 }
             )
         if args.refinement_mode:
