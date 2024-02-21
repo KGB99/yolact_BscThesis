@@ -1214,7 +1214,7 @@ refinement_pbr_aug_hue_all_only_real_lre3_check = yolact_base_config.copy({
     #'gamma': 0.1,
     #'lr_steps': (280000, 360000, 400000),
     'gamma': 0.1,
-    'lr_steps': (35000),
+    'lr_steps': (35000,40000),
     
     
     # Dataset stuff
@@ -1249,7 +1249,7 @@ refinement_pbr_aug_hue_all_only_real_lre4_check = yolact_base_config.copy({
     #'gamma': 0.1,
     #'lr_steps': (280000, 360000, 400000),
     'gamma': 0.1,
-    'lr_steps': (35000),
+    'lr_steps': (35000,40000),
     
     
     # Dataset stuff
