@@ -174,6 +174,7 @@ class CustomDataParallel(nn.DataParallel):
         return out
     
 def refinement_training():
+    DEBUG = False
     print("entering refinement mode...")
     if not os.path.exists(args.save_folder):
         os.mkdir(args.save_folder)
@@ -363,7 +364,8 @@ def refinement_training():
             
             if (iteration % 100 == 0):
                 print("Iteration=" + str(iteration) + " | Learning-rates check:")
-                for param_group in optimizer.param_groups:
+                for i,param_group in enumerate(optimizer.param_groups):
+                    wandb.log({'lr-param_group_' + str(i) : param_group['lr']}, step=iteration)
                     print(param_group['lr'])
             print("Done printing learning rates!")
 
@@ -373,8 +375,14 @@ def refinement_training():
             # Forward Pass + Compute loss at the same time (see CustomDataParallel and NetLoss)
             try:
                 losses = net(datum)
-            except IndexError:
-                print("Indexerror at losses=net(datum)??")
+            except IndexError as e:
+                print("An index error occured!")
+                print("Datum:" + str(datum))
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                print("Datum:" + str(datum))
+                if DEBUG:
+                    exit()
                 continue
             
             losses = { k: (v).mean() for k,v in losses.items() } # Mean here because Dataparallel
