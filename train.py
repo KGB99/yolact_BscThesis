@@ -365,7 +365,11 @@ def refinement_training():
             optimizer.zero_grad()
 
             # Forward Pass + Compute loss at the same time (see CustomDataParallel and NetLoss)
-            losses = net(datum)
+            try:
+                losses = net(datum)
+            except IndexError:
+                print("Indexerror at losses=net(datum)??")
+                continue
             
             losses = { k: (v).mean() for k,v in losses.items() } # Mean here because Dataparallel
             loss = sum([losses[k] for k in losses])
