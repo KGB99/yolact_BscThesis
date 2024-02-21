@@ -1163,8 +1163,8 @@ refinement_pbr_aug_hue_all_trial = yolact_base_config.copy({
     }),
 })
 
-refinement_pbr_aug_hue_all_only_real_check = yolact_base_config.copy({
-    'name' : 'refinement_pbr_all_only_real_trial',
+refinement_pbr_aug_hue_all_only_real_lre5_check = yolact_base_config.copy({
+    'name' : 'refinement_pbr_all_only_real_lre5_trial',
     
     #augmentation stuff
     'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
@@ -1180,6 +1180,76 @@ refinement_pbr_aug_hue_all_only_real_check = yolact_base_config.copy({
     #'lr_steps': (280000, 360000, 400000),
     'gamma': 0.1,
     'lr_steps': (12500,25000),
+    
+    
+    # Dataset stuff
+    'dataset': train_pbr_random_and_kinect,
+    'real_dataset': refinement_real_all,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+refinement_pbr_aug_hue_all_only_real_lre3_check = yolact_base_config.copy({
+    'name' : 'refinement_pbr_all_only_real_lre3_trial',
+    
+    #augmentation stuff
+    'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : True,
+
+    #configs for refinement stuff
+    'lr': 1e-3, #original is 1e-3
+    'ratio_pbr_to_real': 0, # 0 means only real images, 1 means only pbr images
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    #'gamma': 0.1,
+    #'lr_steps': (280000, 360000, 400000),
+    'gamma': 0.1,
+    'lr_steps': (35000),
+    
+    
+    # Dataset stuff
+    'dataset': train_pbr_random_and_kinect,
+    'real_dataset': refinement_real_all,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+refinement_pbr_aug_hue_all_only_real_lre4_check = yolact_base_config.copy({
+    'name' : 'refinement_pbr_all_only_real_lre4_trial',
+    
+    #augmentation stuff
+    'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : True,
+
+    #configs for refinement stuff
+    'lr': 1e-4, #original is 1e-3
+    'ratio_pbr_to_real': 0, # 0 means only real images, 1 means only pbr images
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    #'gamma': 0.1,
+    #'lr_steps': (280000, 360000, 400000),
+    'gamma': 0.1,
+    'lr_steps': (35000),
     
     
     # Dataset stuff

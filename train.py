@@ -367,7 +367,7 @@ def refinement_training():
                 for i,param_group in enumerate(optimizer.param_groups):
                     wandb.log({'lr-param_group_' + str(i) : param_group['lr']}, step=iteration)
                     print(param_group['lr'])
-            print("Done printing learning rates!")
+                print("Done printing learning rates!")
 
             # Zero the grad to get ready to compute gradients
             optimizer.zero_grad()
