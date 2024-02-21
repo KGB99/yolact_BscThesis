@@ -361,6 +361,12 @@ def refinement_training():
                 step_index += 1
                 set_lr(optimizer, args.lr * (args.gamma ** step_index))
             
+            if (iteration % 100 == 0):
+                print("Iteration=" + str(iteration) + " | Learning-rates check:")
+                for param_group in optimizer.param_groups:
+                    print(param_group['lr'])
+            print("Done printing learning rates!")
+
             # Zero the grad to get ready to compute gradients
             optimizer.zero_grad()
 
