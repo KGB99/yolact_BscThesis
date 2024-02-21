@@ -174,6 +174,7 @@ class CustomDataParallel(nn.DataParallel):
         return out
     
 def refinement_training():
+    print("entering refinement mode...")
     if not os.path.exists(args.save_folder):
         os.mkdir(args.save_folder)
 
@@ -428,8 +429,8 @@ def refinement_training():
                 log.log_gpu_stats = args.log_gpu
             
             #also compute validation loss every 3000 iterations, NOT NECESSARY FOR REFINEMENT
-            #if iteration > 0 and iteration % 3000 == 0:
-            #    compute_validation_loss(net, val_data_loader, log, epoch, iteration)
+            if iteration > 0 and iteration % 3000 == 0:
+                compute_validation_loss(net, val_data_loader, log, epoch, iteration)
 
             iteration += 1
 
@@ -446,7 +447,8 @@ def refinement_training():
                         os.remove(latest)
 
 
-            
+            if (iteration % 500) == 0:
+                print("Sampling ratio so far: Pbr=" + str(pbr_samples) + " | Real=" + str(real_samples))
             # This is done per epoch
             #if args.validation_epoch > 0:
             #    if epoch % args.validation_epoch == 0 and epoch > 0:
