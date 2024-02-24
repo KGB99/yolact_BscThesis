@@ -239,6 +239,17 @@ test_all = dataset_base.copy({
     'label_map' : None
 })
 
+test_quant_eval = dataset_base.copy({
+    'name' : 'test_quant_eval',
+    'train_images' : '',
+    'train_info' : '',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/quantitative_evaluation/test_labels/test_annotations.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : None
+})
+
 medical_test_orx_subset = dataset_base.copy({
     'name' : 'medical_test_orx',
     'train_images' : '',
