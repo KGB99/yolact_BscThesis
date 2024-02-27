@@ -969,7 +969,22 @@ if __name__ == '__main__':
     WANDB = True
     try:
         if WANDB:
-            wandb.init(
+            if args.refinement_mode:
+                wandb.init(
+                    project = 'BscThesis',
+
+                    config= {
+                        'config_name' : cfg.name,
+                        'learning-rate' : cfg.lr,
+                        'architecture' : args.config,
+                        'dataset' : cfg.dataset,
+                        'iterations' : cfg.max_iter, 
+                        'refinement-mode' : True,
+                        'ratio_pbr_to_real' : cfg.ratio_pbr_to_real
+                    }
+                )
+            else:
+                wandb.init(
                 project = 'BscThesis',
 
                 config= {
@@ -978,9 +993,9 @@ if __name__ == '__main__':
                     'architecture' : args.config,
                     'dataset' : cfg.dataset,
                     'iterations' : cfg.max_iter, 
-                    'ratio_pbr_to_real' : cfg.ratio_pbr_to_real
+                    'refinement-mode' : False
                 }
-            )
+                )
         if args.refinement_mode:
             refinement_training()
         else:
