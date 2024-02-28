@@ -255,7 +255,7 @@ trial_quant_eval = dataset_base.copy({
     'train_images' : '',
     'train_info' : '',
     'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
-    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/quant_eval_trials_nogt/test_labels/test_annotations.json',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/quant_eval_trials_nogt/test_labels_yolact/test_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : None
