@@ -712,7 +712,7 @@ def train():
 
                     log.log_gpu_stats = args.log_gpu
                 
-                #also compute validation loss every 3000 iterations
+                #also compute validation loss every 3000 iterations 
                 if iteration > 0 and iteration % 3000 == 0:
                     compute_validation_loss(net, val_data_loader, log, epoch, iteration)
 
@@ -738,6 +738,8 @@ def train():
                     compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
         
         print("Training is done! Now computing validation mAP a final time...")
+        # one final validation loss calculation:
+        compute_validation_loss(net, val_data_loader, log, epoch, iteration)
         
         # Compute validation mAP after training is finished
         compute_validation_map(epoch, iteration, yolact_net, val_dataset, log if args.log else None)
