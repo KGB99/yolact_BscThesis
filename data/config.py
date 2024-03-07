@@ -1150,8 +1150,8 @@ refinement_pbr_aug_hue_all = yolact_base_config.copy({
     }),
 })
 
-refinement_pbr_aug_hue_all_trial = yolact_base_config.copy({
-    'name' : 'refinement_pbr_all_trials',
+pbr_with_real_all = yolact_base_config.copy({
+    'name' : 'pbr_with_real_all',
     
     #augmentation stuff
     'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
@@ -1159,24 +1159,59 @@ refinement_pbr_aug_hue_all_trial = yolact_base_config.copy({
 
     #configs for refinement stuff
     'lr': 1e-3, #original is 1e-3
-    'ratio_pbr_to_real': 0.5,
+    'ratio_pbr_to_real': 0.3,
 
     # For each lr step, what to multiply the lr with
     # original:
     #'gamma': 0.1,
     #'lr_steps': (280000, 360000, 400000),
     'gamma': 0.1,
-    'lr_steps': (12500,25000),
+    'lr_steps': (7500,15000),
     
     
     # Dataset stuff
     'dataset': train_pbr_random_and_kinect,
     'real_dataset': refinement_real_all,
     'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
-    'max_iter' : 35000,
+    'max_iter' : 20000,
     'backbone': resnet50_backbone.copy({
         'selected_layers': list(range(1, 4)),
         
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+pbr_with_ssd_all = yolact_base_config.copy({
+    'name' : 'pbr_with_ssd_all',
+
+    #augmentation stuff
+    'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : True,
+
+    #configs for refinement stuff
+    'lr': 1e-3, #original is 1e-3
+    'ratio_pbr_to_real': 0.3,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    #'gamma': 0.1,
+    #'lr_steps': (280000, 360000, 400000),
+    'gamma': 0.1,
+    'lr_steps': (7500,15000),
+
+
+    # Dataset stuff
+    'dataset': train_pbr_random_and_kinect,
+    'real_dataset': train_ssd_amodal,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 20000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+
         'pred_scales': yolact_base_config.backbone.pred_scales,
         'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
         'use_pixel_scales': True,
