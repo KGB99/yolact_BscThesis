@@ -336,8 +336,11 @@ USE_PRECALC_SA = False # set true if precalculated pickle files from Segment any
 CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
 CREATE_TRAINING_LABELS = False # Write true if you want to create training labels for yolact with generated masks
 
+
+def create_labels():
+    return
+
 if __name__ == '__main__':
-    
     parser = argparse.ArgumentParser(description="Sampling from Yolact masks for Segment Anything")
     parser.add_argument('--config', default=None, required=False,
                         help='The config object to use.')
@@ -347,10 +350,11 @@ if __name__ == '__main__':
     parser.add_argument('--results_path', required=False, default='/cluster/project/infk/cvg/heinj/students/kbirgi/generating_masks', type=str)
     parser.add_argument('--results_dir', required=False, default='output', type=str)
     parser.add_argument('--sa_model', required=False, type=str, default='sam_vit_h_4b8939.pth')
-    parser.add_argument('--stride', help='10 means every 10th picture is processed, 100 means every 100th picture is processed, etc...', required=False, type=int, default='1')
+    parser.add_argument('--stride', help='10 means every 10th picture is processed, 100 means every 100th picture is processed, etc...', required=False, type=int, default=1)
     parser.add_argument('--start_img', default=0, type=int)
     parser.add_argument('--start_cam', default=0, type=int)
     parser.add_argument('--sa_preds', help='path to the precalculated pickle files of segment anything', default='/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/trainSSD/SA_processed_images/mvpsp', required=False, type=str)
+    parser.add_argument('--create_labels')
     args = parser.parse_args()
     stride = args.stride
     images_dir = args.images_dir
@@ -359,6 +363,12 @@ if __name__ == '__main__':
     start_img = args.start_img
     start_cam = args.start_cam
     sa_preds_path = args.sa_preds
+    
+    if args.create_labels:
+        labels_dict = create_labels()
+        with open("/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/generated_labels.json", "w") as f:
+            json.dumps(labels_dict, f)
+            exit()
     
     # prepare results directory
     results_path = temp_results_path + '/' + results_dir
