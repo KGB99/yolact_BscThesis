@@ -333,12 +333,192 @@ SAVE_SA = True
 SAVE_PLOTS = True # TODO: add details to plots like iou and legend
 MAX_IMAGE = 0 # max amount of images per folder, set to 0 for all
 USE_PRECALC_SA = False # set true if precalculated pickle files from Segment anything exist
-#CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
-CREATE_TRAINING_LABELS = False # Write true if you want to create training labels for yolact with generated masks
+CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
+CREATE_TRAINING_LABELS = True # Write true if you want to create training labels for yolact with generated masks
 
 
 def create_labels():
-    return
+    labels_dict = {} # for the generated labels
+    print('Loading annotations...', end='',flush=True)
+    f = open(args.coco_file)
+    coco_dict = json.load(f) #gt labels
+    f.close()
+    print(' Done.', flush=True)
+
+
+    len_coco_dict = len(coco_dict)
+    passed = False
+    for i,camera in enumerate(coco_dict):
+        if ((not passed) & ((i+1) < start_cam)):
+            continue
+
+        #print("BEWARE: USING CHOSEN SCENES FROM CODE! NO OTHER CAMERA ANGLES WILL BE PROCESSED!")
+        #if not (camera in CHOSEN_SCENES):
+        #    continue
+
+        camera_dict = coco_dict[camera]
+        len_camera_dict = len(camera_dict)
+        for j,imageId in enumerate(camera_dict):
+            print(camera_dict[imageId]['img']['file_name'])
+            #if ((not passed) & ((j+1) < start_img)):
+             #   continue
+            #passed = True
+
+            #if ((j % stride) != 0):
+            #    continue
+
+            start_time = time.time()
+            print("Camera:" + str(i+1) + "/" + str(len_coco_dict) + \
+                " | Image:" + str(j+1) + "/" + str(len_camera_dict), end = '')
+
+            img_dict = camera_dict[imageId]['img'] # keys: ['id', 'width', 'height', 'file_name']
+            mask_dict = camera_dict[imageId]['mask'] # keys: ['segmentation', 'bbox', 'area', 'iscrowd', 'image_id', 'category_id', 'id'] 
+            img_path = images_dir + "/" + img_dict['file_name']
+            image = cv2.imread(img_path)
+            h, w, _ = image.shape
+            
+            #prep_path(results_path, img_dict['file_name'])
+            #img_results_path = results_path + '/' + img_dict['file_name']
+            print(' | Processing times: ', end='')
+            yolact_time_begin = time.time()
+            with torch.no_grad():
+                # if we only want the yolact preds and no processing
+                
+                #if SAVE_YOLACT_PREDS:
+                #    prep_path(yolact_path, img_dict['file_name'])
+                #    yolact_preds_path = yolact_path + '/' + img_dict['file_name']
+                #    frame = torch.from_numpy(cv2.imread(img_path)).cuda().float()
+                #    batch = FastBaseTransform()(frame.unsqueeze(0))
+                #    preds = net(batch)
+                #    img_numpy = prep_display(preds, frame, None, None, undo_transform=False)
+                #    #cv2.imwrite('./testerOutput/yolactPred.png', img_numpy)
+                #    img_numpy = cv2.cvtColor(img_numpy, cv2.COLOR_BGR2RGB)
+                #    axs[0,1].imshow(img_numpy)
+                #    axs[0,1].axis('off')
+                #    axs[0,1].set_title('Yolact Prediction')
+                
+                
+                # pre_yolact_preds is a list of dicts containing keys (class,score,bbox,mask)
+                pre_yolact_preds = get_yolact_preds(img_path, sum_all=False, crop_masks=(CROP_MASKS & (not CROP_MASKS_PERSONAL)))
+                if TAKE_MAX_PREDS:
+                    yolact_preds = []
+                    powerdrill_max_conf = -1
+                    powerdrill_dict = None
+                    screwdriver_max_conf = -1
+                    screwdriver_dict = None
+                    for pred in pre_yolact_preds:
+                        # MEDICAL_CLASSES = ('powerdrill', 'screwdriver')
+                        # powerdrill = 0, screwdriver = 1
+                        if pred['class'] == 0:
+                            if powerdrill_max_conf < pred['score']:
+                                powerdrill_max_conf = pred['score']
+                                powerdrill_dict = pred
+                        else:
+                            if screwdriver_max_conf < pred['score']:
+                                screwdriver_max_conf = pred['score']
+                                screwdriver_dict = pred
+                    if powerdrill_dict != None:
+                        yolact_preds.append(powerdrill_dict)
+                    if screwdriver_dict != None:
+                        yolact_preds.append(screwdriver_dict)
+                else:
+                    yolact_preds = pre_yolact_preds
+                
+                if len(yolact_preds) == 0:
+                    print('| no predictions found!', end='')
+                    end_time = time.time()
+                    print(' | Processing time: ' + str(int(end_time - start_time)) + 's' , flush=True)
+                    continue
+                yolact_time_end = time.time()
+                print(' Yolact_preds=' + str(int(yolact_time_end - yolact_time_begin)) + 's, ', end='')
+                
+                crop_time_begin = time.time()
+                for yolact_pred in yolact_preds:
+                    yolact_pred['blobs'] = calculate_blobs(yolact_pred['mask'])
+                if CROP_MASKS_PERSONAL:
+                    #temp_image_bool = (yolact_preds[0]['mask']).astype(bool)
+                    #temp_image = (cv2.cvtColor(temp_image_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
+                    #temp_res = cv2.addWeighted(image, 0.5, temp_image, 1, 0)
+                    #cv2.imwrite('./testerOutput/noCropMasks.png', temp_res)
+                    yolact_preds = crop_masks(yolact_preds, h, w)
+                    #res_mask = np.zeros_like(temp_image_bool)
+                    #for blob in yolact_preds[0]['blobs']:
+                    #    res_mask = np.logical_or(res_mask, blob)
+                    #temp_image_bool = (res_mask).astype(bool)
+                    #temp_image = (cv2.cvtColor(temp_image_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
+                    #temp_res = cv2.addWeighted(image, 0.5, temp_image, 1, 0)
+                    #cv2.imwrite('./testerOutput/personalCropMasks.png', temp_res)
+                    #exit()
+                crop_time_end = time.time()
+                print(' Cropping=' + str(int(crop_time_end - crop_time_begin)) + 's, ', end='')
+            
+            if SEGMENT_EVERYTHING:
+                sa_time_begin = time.time()
+                if USE_PRECALC_SA:
+                    try:
+                        curr_sa_path = sa_preds_path + '/' + str.replace(img_dict['file_name'], '.png' , '.pkl')
+                        with open(curr_sa_path, "rb") as f:
+                            sa_masks = pickle.load(f) #load pickle data to sa_masks
+                            sa_masks = sa_masks['all_masks']
+                    except EOFError:
+                        sa_masks = segmentEverything(img_path, anything_generator)
+                else:
+                    sa_masks = segmentEverything(img_path, anything_generator)
+
+                if SAVE_SA:
+                    if SAVE_PLOTS:
+                        #prep_path(sa_path, img_dict['file_name'])
+                        axs[0,0].imshow(image)
+                        img = show_anns(sa_masks)
+                        axs[0,0].imshow(img)
+                        axs[0,0].axis('off')
+                        axs[0,0].set_title('Segment-Anything Predictions')
+                    else:
+                        prep_path(sa_path, img_dict['file_name'])
+                        plt.imshow(image)
+                        img = show_anns(sa_masks)
+                        plt.imshow(img)
+                        plt.savefig(sa_path + '/' + img_dict['file_name'])
+                sa_time_end = time.time()
+                print('SA=' + str(int(sa_time_end - sa_time_begin)) + 's, ', end='')
+
+                #plt.imshow(image)
+                #show_anns(sa_masks)
+                #plt.savefig('testerOutput/SegmentAnything_image.png')
+                results_time_begin = time.time()
+                result_masks = []
+                for k,yolact_pred in enumerate(yolact_preds):
+                    if len(yolact_pred['blobs']) == 0:
+                        continue
+                    
+                    
+                    result_mask = iou_filter(yolact_pred['blobs'], sa_masks)
+                    result_mask_bool = result_mask.astype(bool)
+                    gen_mask_bool = result_mask_bool
+                    
+                    if CREATE_TRAINING_LABELS:
+                        gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
+                        cv2.imwrite('./testerOutput/generated_mask_final.png', gen_mask_final)
+                        exit()
+                results_time_end = time.time()
+                print(' Storing=' + str(int(results_time_end - results_time_begin)) + 's' , end='')
+            end_time = time.time()
+            print(' | Total time: ' + str(int(end_time - start_time)) + 's' , flush=True)
+
+        f = open(temp_results_path + '/' + results_dir + '/camera_' + camera + '.json', 'w')
+        #print(camera_results)
+        #print(type(camera_results))
+        json.dump(camera_results, f, indent=2)
+        f.close()
+
+    #f = open(temp_results_path + '/' + results_dir + '/all_results.json', 'w')
+    #f.write(json.dumps(results))
+    #f.close()
+
+    print('OK!')
+
+
+    return labels_dict
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Sampling from Yolact masks for Segment Anything")
@@ -363,12 +543,6 @@ if __name__ == '__main__':
     start_img = args.start_img
     start_cam = args.start_cam
     sa_preds_path = args.sa_preds
-    
-    if args.create_labels:
-        labels_dict = create_labels()
-        with open("/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/generated_labels.json", "w") as f:
-            json.dumps(labels_dict, f)
-            exit()
     
     # prepare results directory
     results_path = temp_results_path + '/' + results_dir
@@ -421,6 +595,13 @@ if __name__ == '__main__':
         sam.to(device = device)
         anything_generator = SamAutomaticMaskGenerator(sam)
 
+    if args.create_labels:
+        labels_dict = create_labels()
+        with open("/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/generated_labels.json", "w") as f:
+            json.dumps(labels_dict, f)
+            exit()
+
+    
     print('Loading annotations...', end='',flush=True)
     f = open(args.coco_file)
     coco_dict = json.load(f)
