@@ -464,21 +464,6 @@ def create_labels():
                         sa_masks = segmentEverything(img_path, anything_generator)
                 else:
                     sa_masks = segmentEverything(img_path, anything_generator)
-
-                if SAVE_SA:
-                    if SAVE_PLOTS:
-                        #prep_path(sa_path, img_dict['file_name'])
-                        axs[0,0].imshow(image)
-                        img = show_anns(sa_masks)
-                        axs[0,0].imshow(img)
-                        axs[0,0].axis('off')
-                        axs[0,0].set_title('Segment-Anything Predictions')
-                    else:
-                        prep_path(sa_path, img_dict['file_name'])
-                        plt.imshow(image)
-                        img = show_anns(sa_masks)
-                        plt.imshow(img)
-                        plt.savefig(sa_path + '/' + img_dict['file_name'])
                 sa_time_end = time.time()
                 print('SA=' + str(int(sa_time_end - sa_time_begin)) + 's, ', end='')
 
@@ -504,16 +489,6 @@ def create_labels():
                 print(' Storing=' + str(int(results_time_end - results_time_begin)) + 's' , end='')
             end_time = time.time()
             print(' | Total time: ' + str(int(end_time - start_time)) + 's' , flush=True)
-
-        f = open(temp_results_path + '/' + results_dir + '/camera_' + camera + '.json', 'w')
-        #print(camera_results)
-        #print(type(camera_results))
-        json.dump(camera_results, f, indent=2)
-        f.close()
-
-    #f = open(temp_results_path + '/' + results_dir + '/all_results.json', 'w')
-    #f.write(json.dumps(results))
-    #f.close()
 
     print('OK!')
 
