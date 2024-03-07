@@ -333,7 +333,7 @@ SAVE_SA = True
 SAVE_PLOTS = True # TODO: add details to plots like iou and legend
 MAX_IMAGE = 0 # max amount of images per folder, set to 0 for all
 USE_PRECALC_SA = False # set true if precalculated pickle files from Segment anything exist
-CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
+#CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
 CREATE_TRAINING_LABELS = False # Write true if you want to create training labels for yolact with generated masks
 
 
