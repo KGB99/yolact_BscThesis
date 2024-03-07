@@ -4,6 +4,7 @@
 #SBATCH --gpus=1
 #SBATCH --mem-per-cpu=80G
 #SBATCH --time=48:00:00
+#SBATCH --gres=gpumem:24g
 
 module load gcc/8.2.0 python_gpu/3.11.2 eth_proxy
 source myenv/bin/activate

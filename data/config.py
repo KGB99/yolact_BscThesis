@@ -981,7 +981,7 @@ train_pbr_random_and_kinect_20000 = yolact_base_config.copy({
 })
 
 train_pbr_random_and_kinect_40000 = yolact_base_config.copy({
-    'name' : 'pbr_random_and_kinect_aug',
+    'name' : 'pbr_random_and_kinect',
     # Dataset stuff
     'dataset': train_pbr_random_and_kinect,
     'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
@@ -1016,7 +1016,7 @@ train_pbr_random_and_kinect_hue_40000 = yolact_base_config.copy({
 })
 
 train_pbr_random_and_kinect_hue_noise_40000 = yolact_base_config.copy({
-    'name' : 'pbr_random_and_kinect_aug_hue',
+    'name' : 'pbr_random_and_kinect_aug_hue_noise',
     
     #augmentation stuff
     'hue_delta' : 50, # was at 100 for the previous hue iteration

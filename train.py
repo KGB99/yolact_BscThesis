@@ -363,11 +363,11 @@ def refinement_training():
                 set_lr(optimizer, args.lr * (args.gamma ** step_index))
             
             if (iteration % 100 == 0):
-                print("Iteration=" + str(iteration) + " | Learning-rates check:")
+                #print("Iteration=" + str(iteration) + " | Learning-rates check:")
                 for i,param_group in enumerate(optimizer.param_groups):
                     wandb.log({'lr-param_group_' + str(i) : param_group['lr']}, step=iteration)
                     print(param_group['lr'])
-                print("Done printing learning rates!")
+                #print("Done printing learning rates!")
 
             # Zero the grad to get ready to compute gradients
             optimizer.zero_grad()
@@ -422,7 +422,7 @@ def refinement_training():
                     for k in losses:
                         loss_dict['moving_avg_loss_' + k] = round(loss_avgs[k].get_avg(),5)
                     wandb.log(loss_dict, step=iteration)
-                
+                print(f"Pbr-Samples: {pbr_samples} | Real-Samples: {real_samples}")
                 print(('Epoch: %3d | Iteration %7d ||' + (' %s: %.3f |' * len(losses)) + ' T: %.3f || ETA: %s || timer: %.3f')
                         % tuple([epoch,iteration] + loss_labels + [total, eta_str, elapsed]), flush=True)
                 
@@ -465,8 +465,8 @@ def refinement_training():
                         os.remove(latest)
 
 
-            if (iteration % 500) == 0:
-                print("Sampling ratio so far: Pbr=" + str(pbr_samples) + " | Real=" + str(real_samples))
+            #if (iteration % 500) == 0:
+            #    print("Sampling ratio so far: Pbr=" + str(pbr_samples) + " | Real=" + str(real_samples))
             # This is done per epoch
             #if args.validation_epoch > 0:
             #    if epoch % args.validation_epoch == 0 and epoch > 0:
