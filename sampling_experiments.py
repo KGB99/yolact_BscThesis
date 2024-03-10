@@ -373,7 +373,10 @@ CREATE_TRAINING_LABELS = True # Write true if you want to create training labels
 ONLY_ONE_TOOL = True
 VISUALIZE_GEN_MASKS = True
 
-def create_labels():
+def create_labels(results_path):
+    results_dir = args.results_dir
+    print(results_path)
+    print(results_dir)
     labels_dict = {} # for the generated labels
     print('Loading annotations...', end='',flush=True)
     f = open(args.coco_file)
@@ -532,7 +535,7 @@ def create_labels():
                     result_mask_bool = result_mask.astype(bool)
                     gen_mask_bool = result_mask_bool
                     
-                    gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
+                    #gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
                     im_pil = Image.fromarray(gen_mask_bool)
                     im_pil.convert("1")
                     width, height = im_pil.size
@@ -668,10 +671,14 @@ if __name__ == '__main__':
         sam.to(device = device)
         anything_generator = SamAutomaticMaskGenerator(sam)
 
+    #labels for semi self-supervised learning
     if args.create_labels:
-        labels_dict = create_labels()
-        with open("/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/generated_labels.json", "w") as f:
+        labels_dict = create_labels(results_path)
+        if (not os.path.exists(f"/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/{results_dir}")):
+            os.mkdir(f"/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/{results_dir}")
+        with open(f"/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/{results_dir}/generated_labels.json", "w") as f:
             json.dumps(labels_dict, f)
+            print("OK!")
             exit()
 
     
@@ -914,10 +921,10 @@ if __name__ == '__main__':
                     #plt.figtext(0.5, 0.01, 'IoU(Generated Mask, Ground Truth Mask) = ' + str(masks_iou), fontsize=10, ha='center')
                     plt.savefig(result_pred_path, bbox_inches='tight', dpi=300)
                     
-                    if CREATE_TRAINING_LABELS:
-                        gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
-                        cv2.imwrite('./testerOutput/generated_mask_final.png', gen_mask_final)
-                        exit()
+                    #if CREATE_TRAINING_LABELS:
+                    #    gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
+                    #    cv2.imwrite('./testerOutput/generated_mask_final.png', gen_mask_final)
+                    #    exit()
                     #camera_results[img_dict['id']][str(k)] = results[img_dict['id']][str(k)]
                 plt.close('all')
                 results_time_end = time.time()
