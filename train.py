@@ -312,16 +312,20 @@ def refinement_training():
             #    if False:
             if np.random.randint(0, high=100) < (100 * cfg.ratio_pbr_to_real): 
                 pbr_samples += 1
+                print("Sampling PBR")
                 try:
                     datum = next(pbr_iterator)
                 except StopIteration: # incase the dataloader is exhausted
+                    print("PBR iterator is exhausted")
                     pbr_iterator = iter(pbr_data_loader)
                     datum = next(pbr_iterator)
             else:
                 real_samples += 1
+                print("Sampling Real")
                 try:
                     datum = next(real_iterator)
                 except StopIteration: #again incase the dataloader is exhausted
+                    print("Real iterator is exhausted")
                     real_iterator = iter(real_data_loader)
                     datum = next(real_data_loader)
             
@@ -377,12 +381,15 @@ def refinement_training():
                 losses = net(datum)
             except IndexError as e:
                 print("An index error occured!")
-                print("Datum:" + str(datum))
+                #print("Datum:" + str(datum))
+                loss.backward() 
+                continue
             except Exception as e:
                 print(f"An error occurred: {e}")
-                print("Datum:" + str(datum))
+                #print("Datum:" + str(datum))
                 if DEBUG:
                     exit()
+                loss.backward() 
                 continue
             
             losses = { k: (v).mean() for k,v in losses.items() } # Mean here because Dataparallel
@@ -972,6 +979,7 @@ if __name__ == '__main__':
     try:
         if WANDB:
             if args.refinement_mode:
+                print("entering refinement wandb")
                 wandb.init(
                     project = 'BscThesis',
 

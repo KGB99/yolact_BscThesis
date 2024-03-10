@@ -21,6 +21,9 @@ from layers.output_utils import postprocess, undo_image_transformation
 from collections import defaultdict
 import pycocotools.mask as maskUtils
 
+from PIL import Image
+from shapely.geometry import Polygon, MultiPolygon
+
 
 iou_thresholds = [x / 100 for x in range(50, 100, 5)]
 coco_cats = {} # Call prep_coco_cats to fill this
@@ -318,6 +321,38 @@ def prep_path(results_path, img_path):
             os.mkdir(temp_path)
     return
 
+def create_mask_annotation(image_path,APPROX):
+    image = image_path#ski.io.imread(image_path)
+    contour_list = measure.find_contours(image, positive_orientation='low')
+    segmentations = []
+    polygons = []
+    poly = -1
+    bbox = -1
+    for contour in contour_list:
+        for i in range(len(contour)):
+            row,col = contour[i]
+            contour[i] = (col-1,row-1)
+        
+        poly = Polygon(contour)
+        if (poly.area <= 1): continue
+
+        if APPROX:
+            poly = poly.simplify(1.0, preserve_topology=False)
+        segmentation = np.array(poly.exterior.coords).ravel().tolist()
+        #coords = np.array(poly.exterior.coords)
+        #fig, ax = plt.subplots()
+        #ax.plot(coords[:,0],coords[:,1])
+        #plt.show()
+        segmentations.append(segmentation)
+        polygons.append(poly)
+        
+        multipoly = MultiPolygon(polygons)
+        x1, y1, x2, y2 = multipoly.bounds
+        bbox = (x1, y1, x2-x1, y2-y1)
+    if (bbox == -1) or (poly == -1):
+        return -1,-1,-1
+    return segmentations, bbox, poly.area
+
 
 IOU_THRESHOLD = 0.2 # threshold for how much iou the SA-masks need with yolact preds to be included in result
 SCORE_THRESHOLD = 0.2 # threshold for yolact model
@@ -335,7 +370,8 @@ MAX_IMAGE = 0 # max amount of images per folder, set to 0 for all
 USE_PRECALC_SA = False # set true if precalculated pickle files from Segment anything exist
 CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
 CREATE_TRAINING_LABELS = True # Write true if you want to create training labels for yolact with generated masks
-
+ONLY_ONE_TOOL = True
+VISUALIZE_GEN_MASKS = True
 
 def create_labels():
     labels_dict = {} # for the generated labels
@@ -355,6 +391,8 @@ def create_labels():
         #print("BEWARE: USING CHOSEN SCENES FROM CODE! NO OTHER CAMERA ANGLES WILL BE PROCESSED!")
         #if not (camera in CHOSEN_SCENES):
         #    continue
+        if not (camera in labels_dict):
+            labels_dict[camera] = {}
 
         camera_dict = coco_dict[camera]
         len_camera_dict = len(camera_dict)
@@ -406,6 +444,7 @@ def create_labels():
                     powerdrill_dict = None
                     screwdriver_max_conf = -1
                     screwdriver_dict = None
+                    object_id = -1
                     for pred in pre_yolact_preds:
                         # MEDICAL_CLASSES = ('powerdrill', 'screwdriver')
                         # powerdrill = 0, screwdriver = 1
@@ -417,10 +456,22 @@ def create_labels():
                             if screwdriver_max_conf < pred['score']:
                                 screwdriver_max_conf = pred['score']
                                 screwdriver_dict = pred
-                    if powerdrill_dict != None:
-                        yolact_preds.append(powerdrill_dict)
-                    if screwdriver_dict != None:
-                        yolact_preds.append(screwdriver_dict)
+                    if ONLY_ONE_TOOL: #incase we only want 1 prediction
+                        if ((powerdrill_dict != None) & (screwdriver_dict != None)):
+                            if screwdriver_max_conf > powerdrill_max_conf:
+                                yolact_preds = [screwdriver_dict]
+                            else:
+                                yolact_preds= [powerdrill_dict]
+                        else:
+                            if powerdrill_dict != None:
+                                yolact_preds.append(powerdrill_dict)
+                            if screwdriver_dict != None:
+                                yolact_preds.append(screwdriver_dict)
+                    else:
+                        if powerdrill_dict != None:
+                            yolact_preds.append(powerdrill_dict)
+                        if screwdriver_dict != None:
+                            yolact_preds.append(screwdriver_dict)
                 else:
                     yolact_preds = pre_yolact_preds
                 
@@ -481,12 +532,59 @@ def create_labels():
                     result_mask_bool = result_mask.astype(bool)
                     gen_mask_bool = result_mask_bool
                     
-                    if CREATE_TRAINING_LABELS:
-                        gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
-                        cv2.imwrite('./testerOutput/generated_mask_final.png', gen_mask_final)
+                    gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
+                    im_pil = Image.fromarray(gen_mask_bool)
+                    im_pil.convert("1")
+                    width, height = im_pil.size
+                    bitmask_curr = Image.new("1", (width+2,height+2), 0)
+                    bitmask_curr.paste(im_pil, (1,1))
+
+                    gen_mask_dict = {}
+                    try:
+                        gen_mask_dict["segmentation"], gen_mask_dict["bbox"], gen_mask_dict["area"] = create_mask_annotation(np.array(bitmask_curr), False)
+                        if (gen_mask_dict["segmentation"] == -1 or gen_mask_dict["bbox"] == -1 or gen_mask_dict["area"] == -1):
+                            # continue cause theres nothing to learn from
+                            continue
+                    except Exception:
+                        print("EXCEPTION OCCURED!")
+                        continue
+                        
+                    #create new mask dict with generated mask
+                    gen_mask_dict["iscrowd"] = 0
+                    gen_mask_dict["image_id"] = mask_dict['image_id']
+                    gen_mask_dict["category_id"] = yolact_pred['class']
+                    gen_mask_dict["id"] = mask_dict['id']
+                    
+                    #from now on we can assume that this image exists
+                    labels_dict[camera][imageId] = {}
+                    labels_dict[camera][imageId]["img"] = img_dict
+                    labels_dict[camera][imageId]["mask"] = gen_mask_dict
+                    
+                    if VISUALIZE_GEN_MASKS:
+                        gt_mask = np.zeros((h, w), dtype=np.uint8)
+                        # Draw each polygon on the mask
+                        for polygon in mask_dict['segmentation']:
+                            rle = maskUtils.frPyObjects([polygon], h, w)
+                            m = maskUtils.decode(rle)
+                            gt_mask = np.maximum(gt_mask, m[:,:,0])
+                        gt_mask_bool = gt_mask.astype(bool)
+                        
+                        and_mask_bool = np.logical_and(result_mask_bool, gt_mask_bool)
+                        result_mask_bool = np.logical_and(result_mask_bool, np.logical_not(and_mask_bool))
+                        gt_mask_bool = np.logical_and(gt_mask_bool, np.logical_not(and_mask_bool))
+                        gt_mask_rgb = (cv2.cvtColor(gt_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,255,0], dtype=np.uint8)
+                        and_mask_rgb = (cv2.cvtColor(and_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,0,0], dtype=np.uint8)
+                        result_mask_rgb = (cv2.cvtColor(result_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
+
+                        result_image = cv2.addWeighted(image, 1.0, and_mask_rgb, 0.5, 0)
+                        result_image = cv2.addWeighted(result_image, 1.0, result_mask_rgb, 0.5, 0)
+                        result_image = cv2.addWeighted(result_image, 1.0, gt_mask_rgb, 0.5, 0)
+                        
+                        cv2.imwrite(f"./testerOutput/{camera}{imageId}.png", result_image)
                         exit()
+                        
                 results_time_end = time.time()
-                print(' Storing=' + str(int(results_time_end - results_time_begin)) + 's' , end='')
+                print(' Label-Gen=' + str(int(results_time_end - results_time_begin)) + 's' , end='')
             end_time = time.time()
             print(' | Total time: ' + str(int(end_time - start_time)) + 's' , flush=True)
 
@@ -509,7 +607,7 @@ if __name__ == '__main__':
     parser.add_argument('--start_img', default=0, type=int)
     parser.add_argument('--start_cam', default=0, type=int)
     parser.add_argument('--sa_preds', help='path to the precalculated pickle files of segment anything', default='/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/trainSSD/SA_processed_images/mvpsp', required=False, type=str)
-    parser.add_argument('--create_labels')
+    parser.add_argument('--create_labels', default=False, type=bool)
     args = parser.parse_args()
     stride = args.stride
     images_dir = args.images_dir

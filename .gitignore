@@ -164,3 +164,4 @@ slurm*
 testerOutput
 SA_models
 myenv/
+sampling_env

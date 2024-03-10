@@ -719,11 +719,11 @@ class SSDAugmentation(object):
         ])
 
     def __call__(self, img, masks, boxes, labels):
-        global COUNTER
-        if COUNTER < 100:
-            cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_a.png', img)
+        #global COUNTER
+        #if COUNTER < 100:
+        #    cv2.imwrite('./testerOutput/augmentations/' + str(COUNTER) + '_a.png', img)
         result = self.augment(img, masks, boxes, labels)
-        COUNTER = COUNTER + 1
+        #COUNTER = COUNTER + 1
         #print(type(result))
         #cv2.imwrite('./testerOutput/post_entire_aug.png', result[0])
         return result

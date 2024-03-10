@@ -188,8 +188,8 @@ refinement_real_all = dataset_base.copy({
     'name' : 'refinement_real_all',
     'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
     'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/refinement_real/016006_all_labels/train_labels/train_annotations.json',
-    'valid_images' : '',
-    'valid_info' : '',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/refinement_real/016006_all_labels/train_labels/val_annotations.json',
     'has_gt' : True,
     'class_names' : MEDICAL_CLASSES,
     'label_map' : None
@@ -964,7 +964,7 @@ medical_all_resnet50_config = yolact_base_config.copy({
 })
 
 train_pbr_random_and_kinect_20000 = yolact_base_config.copy({
-    'name' : 'pbr_random_and_kinect_aug',
+    'name' : 'train_pbr_random_kinect',
     # Dataset stuff
     'dataset': train_pbr_random_and_kinect,
     'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
@@ -1015,8 +1015,8 @@ train_pbr_random_and_kinect_hue_40000 = yolact_base_config.copy({
     }),
 })
 
-train_pbr_random_and_kinect_hue_noise_40000 = yolact_base_config.copy({
-    'name' : 'pbr_random_and_kinect_aug_hue_noise',
+train_pbr_random_and_kinect_augmentations = yolact_base_config.copy({
+    'name' : 'pbr_random_and_kinect_augmented',
     
     #augmentation stuff
     'hue_delta' : 50, # was at 100 for the previous hue iteration
@@ -1126,17 +1126,17 @@ refinement_pbr_aug_hue_all = yolact_base_config.copy({
     'augment_noise' : True,
 
     #configs for refinement stuff
-    'lr': 1e-5, #original is 1e-3
-    'ratio_pbr_to_real': 0.5,
+    #'lr': 1e-5, #original is 1e-3
+    #'ratio_pbr_to_real': 0.5,
 
     # For each lr step, what to multiply the lr with
     # original:
-    #'gamma': 0.1,
-    #'lr_steps': (280000, 360000, 400000),
+    'gamma': 0.1,
+    'lr_steps': (25000, 30000, 35000),
     
     # Dataset stuff
-    'dataset': train_pbr_random_and_kinect,
-    'real_dataset': refinement_real_all,
+    'dataset': refinement_real_all,
+    #'real_dataset': refinement_real_all,
     'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
     'max_iter' : 35000,
     'backbone': resnet50_backbone.copy({
@@ -1159,7 +1159,7 @@ pbr_with_real_all = yolact_base_config.copy({
 
     #configs for refinement stuff
     'lr': 1e-3, #original is 1e-3
-    'ratio_pbr_to_real': 0.3,
+    'ratio_pbr_to_real': 0.8, #0 is only real, 1 is only pbr
 
     # For each lr step, what to multiply the lr with
     # original:
@@ -1189,19 +1189,18 @@ pbr_with_ssd_all = yolact_base_config.copy({
     'name' : 'pbr_with_ssd_all',
 
     #augmentation stuff
-    'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
-    'augment_noise' : True,
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
 
     #configs for refinement stuff
     'lr': 1e-3, #original is 1e-3
-    'ratio_pbr_to_real': 0.3,
+    'ratio_pbr_to_real': 0.8,
 
     # For each lr step, what to multiply the lr with
     # original:
     #'gamma': 0.1,
     #'lr_steps': (280000, 360000, 400000),
     'gamma': 0.1,
-    'lr_steps': (7500,15000),
+    #'lr_steps': (7500,15000),
 
 
     # Dataset stuff
