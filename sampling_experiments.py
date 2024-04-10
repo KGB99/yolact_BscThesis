@@ -11,7 +11,6 @@ import pickle
 
 import time
 import os
-#sys.path.append(os.path.abspath('/cluster/project/infk/cvg/heinj/students/kbirgi/yolact_BscThesis'))
 from yolact import Yolact
 from data import cfg, set_cfg, set_dataset
 from data import COCODetection, get_label_map, MEANS, COLORS
@@ -368,15 +367,23 @@ SAVE_SA = True
 SAVE_PLOTS = True # TODO: add details to plots like iou and legend
 MAX_IMAGE = 0 # max amount of images per folder, set to 0 for all
 USE_PRECALC_SA = False # set true if precalculated pickle files from Segment anything exist
-CHOSEN_SCENES = ['001004'] # Write the camera angles you wish to process, discontinued rn
+CHOSEN_SCENES = ['016003'] # Write the camera angles you wish to process, discontinued rn
 CREATE_TRAINING_LABELS = True # Write true if you want to create training labels for yolact with generated masks
 ONLY_ONE_TOOL = True
-VISUALIZE_GEN_MASKS = True
 
 def create_labels(results_path):
-    results_dir = args.results_dir
-    print(results_path)
-    print(results_dir)
+    print('creating labels...')
+    VISUALIZE_GEN_MASKS = args.visualize_masks
+    # e.g:print(results_path) = /cluster/project/infk/cvg/heinj/students/kbirgi/generating_masks/pbr_base_30000
+    base_img_path = (f"{results_path}/mask_images")
+    base_yolact_path = (f"{results_path}/yolact_images")
+    base_sam_path = (f"{results_path}/sam_images")
+    if (not os.path.exists(base_img_path)):
+        os.mkdir(base_img_path)
+    if (not os.path.exists(base_yolact_path)):
+        os.mkdir(base_yolact_path)
+    if (not os.path.exists(base_sam_path)):
+        os.mkdir(base_sam_path)
     labels_dict = {} # for the generated labels
     print('Loading annotations...', end='',flush=True)
     f = open(args.coco_file)
@@ -388,19 +395,19 @@ def create_labels(results_path):
     len_coco_dict = len(coco_dict)
     passed = False
     for i,camera in enumerate(coco_dict):
-        if ((not passed) & ((i+1) < start_cam)):
-            continue
 
         #print("BEWARE: USING CHOSEN SCENES FROM CODE! NO OTHER CAMERA ANGLES WILL BE PROCESSED!")
-        #if not (camera in CHOSEN_SCENES):
-        #    continue
+        if not (camera in CHOSEN_SCENES):
+            continue
         if not (camera in labels_dict):
             labels_dict[camera] = {}
 
         camera_dict = coco_dict[camera]
         len_camera_dict = len(camera_dict)
         for j,imageId in enumerate(camera_dict):
-            print(camera_dict[imageId]['img']['file_name'])
+            if not ('011700.png' in camera_dict[imageId]['img']['file_name']):
+                continue
+            #print(camera_dict[imageId]['img']['file_name'])
             #if ((not passed) & ((j+1) < start_img)):
              #   continue
             #passed = True
@@ -409,8 +416,8 @@ def create_labels(results_path):
             #    continue
 
             start_time = time.time()
-            print("Camera:" + str(i+1) + "/" + str(len_coco_dict) + \
-                " | Image:" + str(j+1) + "/" + str(len_camera_dict), end = '')
+            print(f"Camera:{i+1:2}/{len_coco_dict}"
+                f" | Image:{j+1:4}/{len_camera_dict}", end = '')
 
             img_dict = camera_dict[imageId]['img'] # keys: ['id', 'width', 'height', 'file_name']
             mask_dict = camera_dict[imageId]['mask'] # keys: ['segmentation', 'bbox', 'area', 'iscrowd', 'image_id', 'category_id', 'id'] 
@@ -418,21 +425,25 @@ def create_labels(results_path):
             image = cv2.imread(img_path)
             h, w, _ = image.shape
             
-            #prep_path(results_path, img_dict['file_name'])
-            #img_results_path = results_path + '/' + img_dict['file_name']
+            prep_path(base_img_path, img_dict['file_name'])
+            img_results_path = base_img_path + '/' + img_dict['file_name']
+            
+            prep_path(base_yolact_path, img_dict['file_name'])
+            yolact_results_path = base_yolact_path + '/' + img_dict['file_name']
+            
+            prep_path(base_sam_path, img_dict['file_name'])
+            sam_results_path = base_sam_path + '/' + img_dict['file_name']
             print(' | Processing times: ', end='')
             yolact_time_begin = time.time()
             with torch.no_grad():
                 # if we only want the yolact preds and no processing
                 
-                #if SAVE_YOLACT_PREDS:
-                #    prep_path(yolact_path, img_dict['file_name'])
-                #    yolact_preds_path = yolact_path + '/' + img_dict['file_name']
-                #    frame = torch.from_numpy(cv2.imread(img_path)).cuda().float()
-                #    batch = FastBaseTransform()(frame.unsqueeze(0))
-                #    preds = net(batch)
-                #    img_numpy = prep_display(preds, frame, None, None, undo_transform=False)
-                #    #cv2.imwrite('./testerOutput/yolactPred.png', img_numpy)
+                if SAVE_YOLACT_PREDS:
+                    frame = torch.from_numpy(cv2.imread(img_path)).cuda().float()
+                    batch = FastBaseTransform()(frame.unsqueeze(0))
+                    preds = net(batch)
+                    img_numpy = prep_display(preds, frame, None, None, undo_transform=False)
+                    cv2.imwrite(yolact_results_path, img_numpy)
                 #    img_numpy = cv2.cvtColor(img_numpy, cv2.COLOR_BGR2RGB)
                 #    axs[0,1].imshow(img_numpy)
                 #    axs[0,1].axis('off')
@@ -481,10 +492,10 @@ def create_labels(results_path):
                 if len(yolact_preds) == 0:
                     print('| no predictions found!', end='')
                     end_time = time.time()
-                    print(' | Processing time: ' + str(int(end_time - start_time)) + 's' , flush=True)
+                    print(f' | Processing time: {int(end_time - start_time):2}s' , flush=True)
                     continue
                 yolact_time_end = time.time()
-                print(' Yolact_preds=' + str(int(yolact_time_end - yolact_time_begin)) + 's, ', end='')
+                print(f' Yolact_preds={int(yolact_time_end - yolact_time_begin):2}s, ', end='')
                 
                 crop_time_begin = time.time()
                 for yolact_pred in yolact_preds:
@@ -504,7 +515,7 @@ def create_labels(results_path):
                     #cv2.imwrite('./testerOutput/personalCropMasks.png', temp_res)
                     #exit()
                 crop_time_end = time.time()
-                print(' Cropping=' + str(int(crop_time_end - crop_time_begin)) + 's, ', end='')
+                print(f' Cropping={int(crop_time_end - crop_time_begin):2}s, ', end='')
             
             if SEGMENT_EVERYTHING:
                 sa_time_begin = time.time()
@@ -519,11 +530,19 @@ def create_labels(results_path):
                 else:
                     sa_masks = segmentEverything(img_path, anything_generator)
                 sa_time_end = time.time()
-                print('SA=' + str(int(sa_time_end - sa_time_begin)) + 's, ', end='')
-
+                print(f'SA={int(sa_time_end - sa_time_begin):2}s, ', end='')
+                
                 #plt.imshow(image)
                 #show_anns(sa_masks)
-                #plt.savefig('testerOutput/SegmentAnything_image.png')
+                #plt.savefig(sam_results_path)
+                #plt.close()
+                
+                plt.imshow(image)
+                img = show_anns(sa_masks)
+                plt.imshow(img)
+                plt.axis('off')
+                plt.savefig(sam_results_path,bbox_inches='tight',dpi=750)
+                
                 results_time_begin = time.time()
                 result_masks = []
                 for k,yolact_pred in enumerate(yolact_preds):
@@ -555,7 +574,7 @@ def create_labels(results_path):
                     #create new mask dict with generated mask
                     gen_mask_dict["iscrowd"] = 0
                     gen_mask_dict["image_id"] = mask_dict['image_id']
-                    gen_mask_dict["category_id"] = yolact_pred['class']
+                    gen_mask_dict["category_id"] = int(yolact_pred['class']) #yolact_pred['class'] is type numpy which json doesnt accept
                     gen_mask_dict["id"] = mask_dict['id']
                     
                     #from now on we can assume that this image exists
@@ -578,20 +597,35 @@ def create_labels(results_path):
                         gt_mask_rgb = (cv2.cvtColor(gt_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,255,0], dtype=np.uint8)
                         and_mask_rgb = (cv2.cvtColor(and_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,0,0], dtype=np.uint8)
                         result_mask_rgb = (cv2.cvtColor(result_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
+                    
 
                         result_image = cv2.addWeighted(image, 1.0, and_mask_rgb, 0.5, 0)
                         result_image = cv2.addWeighted(result_image, 1.0, result_mask_rgb, 0.5, 0)
                         result_image = cv2.addWeighted(result_image, 1.0, gt_mask_rgb, 0.5, 0)
                         
-                        cv2.imwrite(f"./testerOutput/{camera}{imageId}.png", result_image)
-                        exit()
+                        #draw bounding boxes to image
+                        pred_bbox = yolact_pred['bbox']
+                        gt_bbox = mask_dict['bbox']
+                        pr_x = int(pred_bbox[0])
+                        pr_y = int(pred_bbox[1])
+                        pr_w = int(pred_bbox[2])
+                        pr_h = int(pred_bbox[3])
+                        gt_x = int(gt_bbox[0])
+                        gt_y = int(gt_bbox[1])
+                        gt_w = int(gt_bbox[2])
+                        gt_h = int(gt_bbox[3])
+                        bbox_image = np.zeros_like(image)
+                        cv2.rectangle(bbox_image, (pr_x, pr_y), (pr_x + pr_w, pr_y + pr_h), (0,0,255),2)
+                        cv2.rectangle(bbox_image, (gt_x, gt_y), (gt_x + gt_w, gt_y + gt_h), (0,255,0),2)
+                        result_image = cv2.addWeighted(result_image, 1, bbox_image, 1, 0)
+                        
+                        cv2.imwrite(img_results_path, result_image)
+                        
                         
                 results_time_end = time.time()
                 print(' Label-Gen=' + str(int(results_time_end - results_time_begin)) + 's' , end='')
             end_time = time.time()
             print(' | Total time: ' + str(int(end_time - start_time)) + 's' , flush=True)
-
-    print('OK!')
 
 
     return labels_dict
@@ -611,6 +645,7 @@ if __name__ == '__main__':
     parser.add_argument('--start_cam', default=0, type=int)
     parser.add_argument('--sa_preds', help='path to the precalculated pickle files of segment anything', default='/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/trainSSD/SA_processed_images/mvpsp', required=False, type=str)
     parser.add_argument('--create_labels', default=False, type=bool)
+    parser.add_argument('--visualize_masks', default=False, type=bool)
     args = parser.parse_args()
     stride = args.stride
     images_dir = args.images_dir
@@ -624,22 +659,24 @@ if __name__ == '__main__':
     results_path = temp_results_path + '/' + results_dir
     if (not (os.path.exists(results_path))):
         os.mkdir(results_path)
-    results_path = temp_results_path + '/' + results_dir + '/gen_masks'
-    if (not (os.path.exists(results_path))):
-        os.mkdir(results_path)
 
     # prepare yolact directory
-    yolact_path = temp_results_path + '/' + results_dir + '/yolact_preds'
-    if (not os.path.exists(yolact_path)):
-        os.mkdir(yolact_path)
-    
-    sa_path = temp_results_path + '/' + results_dir + '/sa_preds'
-    if (not os.path.exists(sa_path)):
-        os.mkdir(sa_path)
+    if (not args.create_labels):
+        results_path = temp_results_path + '/' + results_dir + '/gen_masks'
+        if (not (os.path.exists(results_path))):
+            os.mkdir(results_path)
+            
+        yolact_path = temp_results_path + '/' + results_dir + '/yolact_preds'
+        if (not os.path.exists(yolact_path)):
+            os.mkdir(yolact_path)
 
-    plots_path = temp_results_path + '/' + results_dir + '/plots'
-    if (not os.path.exists(sa_path)):
-        os.mkdir(sa_path)
+        sa_path = temp_results_path + '/' + results_dir + '/sa_preds'
+        if (not os.path.exists(sa_path)):
+            os.mkdir(sa_path)
+
+        plots_path = temp_results_path + '/' + results_dir + '/plots'
+        if (not os.path.exists(sa_path)):
+            os.mkdir(sa_path)
 
 
     if USE_YOLACT:
@@ -653,7 +690,7 @@ if __name__ == '__main__':
             #    torch.set_default_tensor_type('torch.FloatTensor')
             #    dataset = None        
 
-            print('Loading model...', end='',flush=True)
+            print('Loading YOLACT Model...', end='',flush=True)
             net = Yolact()
             net.load_weights(args.trained_model)
             net.eval()
@@ -664,12 +701,14 @@ if __name__ == '__main__':
             cfg.mask_proto_debug = False
 
     if SEGMENT_EVERYTHING:
+        print('Loading SAM Model...', end='', flush=True)
         sam_checkpoint = 'SA_models/' + args.sa_model
         model_type = 'vit_h' if args.sa_model == 'sam_vit_h_4b8939.pth' else 'vit_l'
         device = "cuda"
         sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
         sam.to(device = device)
         anything_generator = SamAutomaticMaskGenerator(sam)
+        print(' Done.', flush=True)
 
     #labels for semi self-supervised learning
     if args.create_labels:
@@ -677,7 +716,7 @@ if __name__ == '__main__':
         if (not os.path.exists(f"/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/{results_dir}")):
             os.mkdir(f"/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/{results_dir}")
         with open(f"/cluster/project/infk/cvg/heinj/students/kbirgi/Annotations/gen_annotations/{results_dir}/generated_labels.json", "w") as f:
-            json.dumps(labels_dict, f)
+            f.write(json.dumps(labels_dict))
             print("OK!")
             exit()
 
