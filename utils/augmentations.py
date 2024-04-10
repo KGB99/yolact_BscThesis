@@ -5,7 +5,9 @@ import numpy as np
 import types
 from numpy import random
 from math import sqrt
-import imgaug.augmenters as iaa
+
+# uncomment this if you want to run the ablation study image augmentations (stronger hue, saturation, grayscale and noise)
+# import imgaug.augmenters as iaa
 
 from data import cfg, MEANS, STD
 
@@ -181,8 +183,8 @@ class Resize(object):
 
 
 class RandomSaturation(object):
-    # old value of lower was 0.5
-    def __init__(self, lower=0.1, upper=1.5):
+    # value of lower for yolact-augmented = 0.1
+    def __init__(self, lower=0.5, upper=1.7):
         self.lower = lower
         self.upper = upper
         assert self.upper >= self.lower, "contrast upper must be >= lower."
@@ -190,16 +192,20 @@ class RandomSaturation(object):
 
     def __call__(self, image, masks=None, boxes=None, labels=None):
         if random.randint(2):
-            if random.randint(10):
-                image[:, :, 1] *= random.uniform(self.lower, self.upper)
-            else:
+            image[:, :, 1] *= random.uniform(self.lower, self.upper)
+            # uncomment the following lines and comment out the above line to introduce grayscale images:
+            #if random.randint(10):
+            #    image[:, :, 1] *= random.uniform(self.lower, self.upper)
+            #else:
                 # we have a 0.1 * 0.5 percent chance that the image will become grayscale 
-                image[:, :, 1] *= 0
-        #image[:,:,1] *= 1.5
+            #    image[:, :, 1] *= 0
         return image, masks, boxes, labels
 
 
 class RandomHue(object):
+    # value of delta for yolact-augmented = 100 
+    # (experiments were done in range of 100 to 180, 
+    # in the end i settled on 100 as there doesnt seem to be much of a difference)
     def __init__(self, delta=18.0):
         assert delta >= 0.0 and delta <= 360.0
         self.delta = delta
@@ -207,7 +213,6 @@ class RandomHue(object):
     def __call__(self, image, masks=None, boxes=None, labels=None):
         if (random.randint(2) + 1):
             image[:, :, 0] += random.uniform(-self.delta, self.delta)
-            #image[:, :, 0] += -180
             image[:, :, 0][image[:, :, 0] > 360.0] -= 360.0
             image[:, :, 0][image[:, :, 0] < 0.0] += 360.0
         return image, masks, boxes, labels
@@ -220,29 +225,12 @@ class RandomLightingNoise(object):
                       (2, 0, 1), (2, 1, 0))
 
     def __call__(self, image, masks=None, boxes=None, labels=None):
-        # Don't shuffle the channels please, why would you do this
-
-        # if random.randint(2):
-        #     swap = self.perms[random.randint(len(self.perms))]
-        #     shuffle = SwapChannels(swap)  # shuffle channels
-        #     image = shuffle(image)
-        
-        # to cast to uint8 without alterations from float32 we need to do two checks:
-        #check1= check that 0 <= x <= 255
-        #check1 = np.all((image >= 0) & (image <= 255))
-        #check2 = check that theres no decimals
-        #check2 = np.all(image == np.floor(image))
-        #print("hello")
-        #print(check1)
-        #print(check2)
-        #if (check1 & check2):
-        #    print("adding noise")
-            #image_uint8 = image.astype(np.uint8)
-        if random.randint(2):
-            noise_severity = random.randint(low=1, high=3)
-            aug = iaa.imgcorruptlike.GaussianNoise(severity = 2)
-        #image = ((aug(images=[image_uint8]))[0])#.astype(np.float32)
-            image = ((aug(images=[image]))[0])
+        # the original code by bolya had nothing in this function as well.
+        # uncomment the following lines to introduce noise to images:
+        #if random.randint(2):
+        #    noise_severity = random.randint(low=1, high=3)
+        #    aug = iaa.imgcorruptlike.GaussianNoise(severity = 2)
+        #    image = ((aug(images=[image]))[0])
         return image, masks, boxes, labels
 
 
@@ -277,7 +265,8 @@ class RandomContrast(object):
 
 
 class RandomBrightness(object):
-    def __init__(self, delta=32):
+    # yolact-augmented value of delta is 32
+    def __init__(self, delta=10):
         assert delta >= 0.0
         assert delta <= 255.0
         self.delta = delta

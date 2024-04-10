@@ -356,7 +356,7 @@ def create_mask_annotation(image_path,APPROX):
 IOU_THRESHOLD = 0.2 # threshold for how much iou the SA-masks need with yolact preds to be included in result
 SCORE_THRESHOLD = 0.2 # threshold for yolact model
 TOP_K = 5 # top-k for yolact model
-SEGMENT_SAMPLE = False # use the sample method of segment anything, currently not implemented
+SEGMENT_SAMPLE = False # use the sample method of segment anything, currently not implemented!
 SEGMENT_EVERYTHING = True # use segment everything mode of segment anything
 USE_YOLACT = True # keep true unless you do not intend to load the yolact model
 TAKE_MAX_PREDS = True # takes at most the highest scoring prediction per class, none if no prediction
@@ -374,7 +374,6 @@ ONLY_ONE_TOOL = True
 def create_labels(results_path):
     print('creating labels...')
     VISUALIZE_GEN_MASKS = args.visualize_masks
-    # e.g:print(results_path) = /cluster/project/infk/cvg/heinj/students/kbirgi/generating_masks/pbr_base_30000
     base_img_path = (f"{results_path}/mask_images")
     base_yolact_path = (f"{results_path}/yolact_images")
     base_sam_path = (f"{results_path}/sam_images")
@@ -395,8 +394,6 @@ def create_labels(results_path):
     len_coco_dict = len(coco_dict)
     passed = False
     for i,camera in enumerate(coco_dict):
-
-        #print("BEWARE: USING CHOSEN SCENES FROM CODE! NO OTHER CAMERA ANGLES WILL BE PROCESSED!")
         if not (camera in CHOSEN_SCENES):
             continue
         if not (camera in labels_dict):
@@ -405,15 +402,6 @@ def create_labels(results_path):
         camera_dict = coco_dict[camera]
         len_camera_dict = len(camera_dict)
         for j,imageId in enumerate(camera_dict):
-            if not ('011700.png' in camera_dict[imageId]['img']['file_name']):
-                continue
-            #print(camera_dict[imageId]['img']['file_name'])
-            #if ((not passed) & ((j+1) < start_img)):
-             #   continue
-            #passed = True
-
-            #if ((j % stride) != 0):
-            #    continue
 
             start_time = time.time()
             print(f"Camera:{i+1:2}/{len_coco_dict}"
@@ -501,19 +489,8 @@ def create_labels(results_path):
                 for yolact_pred in yolact_preds:
                     yolact_pred['blobs'] = calculate_blobs(yolact_pred['mask'])
                 if CROP_MASKS_PERSONAL:
-                    #temp_image_bool = (yolact_preds[0]['mask']).astype(bool)
-                    #temp_image = (cv2.cvtColor(temp_image_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
-                    #temp_res = cv2.addWeighted(image, 0.5, temp_image, 1, 0)
-                    #cv2.imwrite('./testerOutput/noCropMasks.png', temp_res)
                     yolact_preds = crop_masks(yolact_preds, h, w)
-                    #res_mask = np.zeros_like(temp_image_bool)
-                    #for blob in yolact_preds[0]['blobs']:
-                    #    res_mask = np.logical_or(res_mask, blob)
-                    #temp_image_bool = (res_mask).astype(bool)
-                    #temp_image = (cv2.cvtColor(temp_image_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
-                    #temp_res = cv2.addWeighted(image, 0.5, temp_image, 1, 0)
-                    #cv2.imwrite('./testerOutput/personalCropMasks.png', temp_res)
-                    #exit()
+
                 crop_time_end = time.time()
                 print(f' Cropping={int(crop_time_end - crop_time_begin):2}s, ', end='')
             
@@ -531,11 +508,7 @@ def create_labels(results_path):
                     sa_masks = segmentEverything(img_path, anything_generator)
                 sa_time_end = time.time()
                 print(f'SA={int(sa_time_end - sa_time_begin):2}s, ', end='')
-                
-                #plt.imshow(image)
-                #show_anns(sa_masks)
-                #plt.savefig(sam_results_path)
-                #plt.close()
+
                 
                 plt.imshow(image)
                 img = show_anns(sa_masks)
@@ -685,10 +658,7 @@ if __name__ == '__main__':
         print(" Done.", flush=True)
         with torch.no_grad():
             cudnn.fastest = True
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
-            #else:
-            #    torch.set_default_tensor_type('torch.FloatTensor')
-            #    dataset = None        
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')  
 
             print('Loading YOLACT Model...', end='',flush=True)
             net = Yolact()
@@ -746,27 +716,13 @@ if __name__ == '__main__':
     #results = {}
 
     len_coco_dict = len(coco_dict)
-    passed = False
     for i,camera in enumerate(coco_dict):
-        if ((not passed) & ((i+1) < start_cam)):
-            continue
 
-        #print("BEWARE: USING CHOSEN SCENES FROM CODE! NO OTHER CAMERA ANGLES WILL BE PROCESSED!")
-        #if not (camera in CHOSEN_SCENES):
-        #    continue
 
         camera_dict = coco_dict[camera]
         len_camera_dict = len(camera_dict)
         camera_results = {}
         for j,imageId in enumerate(camera_dict):
-            print(camera_dict[imageId]['img']['file_name'])
-            if ((MAX_IMAGE != 0) & (j > MAX_IMAGE)):
-                print("FINISHING EARLY!")
-                exit()
-            if ((not passed) & ((j+1) < start_img)):
-                continue
-            passed = True
-
             if ((j % stride) != 0):
                 continue
 
@@ -775,9 +731,7 @@ if __name__ == '__main__':
                 " | Image:" + str(j+1) + "/" + str(len_camera_dict), end = '')
             
             if SAVE_PLOTS:
-                #fig, axs = plt.subplots(1,2, figsize=(10,6)) # figsize=(10,6)
                 fig, axs = plt.subplots(2,2) #figsize=(10,5))
-                #fig.subplots_adjust(bottom=0.15, hspace=0.3)  # Adjust bottom margin to create space for the description
             
             img_dict = camera_dict[imageId]['img'] # keys: ['id', 'width', 'height', 'file_name']
             mask_dict = camera_dict[imageId]['mask'] # keys: ['segmentation', 'bbox', 'area', 'iscrowd', 'image_id', 'category_id', 'id'] 
@@ -845,19 +799,9 @@ if __name__ == '__main__':
                 for yolact_pred in yolact_preds:
                     yolact_pred['blobs'] = calculate_blobs(yolact_pred['mask'])
                 if CROP_MASKS_PERSONAL:
-                    #temp_image_bool = (yolact_preds[0]['mask']).astype(bool)
-                    #temp_image = (cv2.cvtColor(temp_image_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
-                    #temp_res = cv2.addWeighted(image, 0.5, temp_image, 1, 0)
-                    #cv2.imwrite('./testerOutput/noCropMasks.png', temp_res)
+                    # this is the alternative cropping algo i created, however results show that its not better
+                    # and it just costs a lot of computation for no real gain
                     yolact_preds = crop_masks(yolact_preds, h, w)
-                    #res_mask = np.zeros_like(temp_image_bool)
-                    #for blob in yolact_preds[0]['blobs']:
-                    #    res_mask = np.logical_or(res_mask, blob)
-                    #temp_image_bool = (res_mask).astype(bool)
-                    #temp_image = (cv2.cvtColor(temp_image_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([0,0,255], dtype=np.uint8)
-                    #temp_res = cv2.addWeighted(image, 0.5, temp_image, 1, 0)
-                    #cv2.imwrite('./testerOutput/personalCropMasks.png', temp_res)
-                    #exit()
                 crop_time_end = time.time()
                 print(' Cropping=' + str(int(crop_time_end - crop_time_begin)) + 's, ', end='')
                 
@@ -881,7 +825,6 @@ if __name__ == '__main__':
 
                 if SAVE_SA:
                     if SAVE_PLOTS:
-                        #prep_path(sa_path, img_dict['file_name'])
                         axs[0,0].imshow(image)
                         img = show_anns(sa_masks)
                         axs[0,0].imshow(img)
@@ -896,9 +839,6 @@ if __name__ == '__main__':
                 sa_time_end = time.time()
                 print('SA=' + str(int(sa_time_end - sa_time_begin)) + 's, ', end='')
 
-                #plt.imshow(image)
-                #show_anns(sa_masks)
-                #plt.savefig('testerOutput/SegmentAnything_image.png')
                 results_time_begin = time.time()
                 result_masks = []
                 for k,yolact_pred in enumerate(yolact_preds):
@@ -943,9 +883,7 @@ if __name__ == '__main__':
                         axs[1,1].imshow(gen_mask_image)
                         axs[1,1].axis('off')
                         axs[1,1].set_title('Generated Mask')
-                
-                        #plt.savefig(result_pred_path, bbox_inches='tight', dpi=300)
-                        #plt.close(fig)
+
                     else:
                         cv2.imwrite(result_pred_path, result_image)
                     masks_iou = round(calculateIoU(gt_mask_bool, result_mask), 2)
@@ -956,15 +894,9 @@ if __name__ == '__main__':
                         'iou' : masks_iou
                         #leave out the masks for now
                     }
-                    #fig.suptitle('IoU(Generated Mask, Ground Truth Mask) = ' + str(masks_iou), fontsize=10, x=0.5, y=0.05)
-                    #plt.figtext(0.5, 0.01, 'IoU(Generated Mask, Ground Truth Mask) = ' + str(masks_iou), fontsize=10, ha='center')
+
                     plt.savefig(result_pred_path, bbox_inches='tight', dpi=300)
-                    
-                    #if CREATE_TRAINING_LABELS:
-                    #    gen_mask_final = (cv2.cvtColor(gen_mask_bool.astype(np.uint8), cv2.COLOR_GRAY2BGR)) * np.array([255,255,255])
-                    #    cv2.imwrite('./testerOutput/generated_mask_final.png', gen_mask_final)
-                    #    exit()
-                    #camera_results[img_dict['id']][str(k)] = results[img_dict['id']][str(k)]
+
                 plt.close('all')
                 results_time_end = time.time()
                 print(' Storing=' + str(int(results_time_end - results_time_begin)) + 's' , end='')
@@ -972,111 +904,8 @@ if __name__ == '__main__':
             print(' | Total time: ' + str(int(end_time - start_time)) + 's' , flush=True)
 
         f = open(temp_results_path + '/' + results_dir + '/camera_' + camera + '.json', 'w')
-        #print(camera_results)
-        #print(type(camera_results))
+
         json.dump(camera_results, f, indent=2)
         f.close()
 
-    #f = open(temp_results_path + '/' + results_dir + '/all_results.json', 'w')
-    #f.write(json.dumps(results))
-    #f.close()
-
     print('OK!')
-
-    exit()
-
-
-
-    #everything that follows is old code that i might need again 
-    if False:
-        image = cv2.imread(img_path)
-        h, w, colors_dimension = image.shape
-
-        keepers=[]
-        for i,score in enumerate(pred_score):
-            if score < SCORE_THRESHOLD:
-                continue
-            keepers.append(i)
-
-            if False:
-                # assuming bbox is in (x,y,w,h) in relation to total image width
-                pr_x = int(pred_bbox[i][0].item() * w)
-                pr_y = int(pred_bbox[i][1].item() * h)
-                pr_h = int(pred_bbox[i][2].item() * w)
-                pr_w = int(pred_bbox[i][3].item() * h)
-                
-                bbox_image = np.zeros_like(image)
-                #print(pr_x,pr_y,pr_h,pr_w)
-                cv2.rectangle(bbox_image, (pr_x, pr_y), (pr_h, pr_w), (0,0,255),3)
-                bbox_result = cv2.addWeighted(image, 1, bbox_image, 0.5, 0)
-
-            mask_image = np.zeros_like(image)
-            print(pred_mask[i].shape)
-            print(pred_proto[i].shape)
-            mask_result = cv2.addWeighted(image, 1, mask_image, 0.5, 0)
-            cv2.imwrite("./testerOutput/" + str(i) + "_" + str(j) + ".png", mask_result)
-        exit()
-
-
-        
-    
-    #for id in keepers:
-        #print(pred_mask[id])
-        #print(pred_bbox[id])
-        
-
-    # TODO: visualize prediction
-    img_numpy = prep_display(preds, frame, None, None, undo_transform=False)
-
-    #if save_path is None:
-    #img_numpy = img_numpy[:, :, (2, 1, 0)]
-
-    #if save_path is None:
-    #    plt.imshow(img_numpy)
-    #    plt.title(path)
-    #    plt.show()
-    #else:
-
-    cv2.imwrite("./testerOutput/" + str(i) + "_" + str(j) + ".png", img_numpy)
-    exit()
-    # TODO: read gt_mask
-
-    # TODO: sample a point from mask
-
-    # TODO: show sampled point in image
-
-
-    image = cv2.imread(img_path)
-    #dets = preds[0]
-    #dets = dets['detection']
-    #proto_data = dets['proto']
-    #pred_bbox = dets['box']
-    #pred_mask = dets['mask']
-    #masks = proto_data @ pred_mask.t()
-    #masks = cfg.mask_proto_mask_activation(masks)
-    #masks = masks.permute(2, 0, 1).contiguous()
-    #print(masks.shape)
-    #exit()
-    #pred_class = dets['class']
-    #pred_score = dets['score']
-    #pred_proto = dets['proto']
-    h,w,colors_dimension = frame.shape
-    t = postprocess(preds, w, h, visualize_lincomb = False, crop_masks = False, score_threshold = SCORE_THRESHOLD)
-    idx = t[1].argsort(0, descending=True)[:TOP_K]
-    masks = t[3][idx]
-    classes, scores, boxes = [x[idx].cpu().numpy() for x in t[:3]]
-    #cv2.imwrite('./testerOutput/puremasks.png',((masks[0] * torch.ones_like(masks[0])) * 255).cpu().numpy())
-    bbox = boxes.squeeze()
-    bbox_image = np.zeros_like(image)
-    cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0,0,255),3)
-    bbox_result = cv2.addWeighted(image, 1, bbox_image, 0.5, 0)
-    masks_bitmask = (masks[0] * torch.ones_like(masks[0]) * 255).cpu().numpy()
-    contours = measure.find_contours(masks_bitmask, 0.5, positive_orientation='low')
-    print(len(contours))
-    #masks_image = np.ones_like(image)
-    #masks_image = cv2.threshold(masks_bitmask, 128, 255, cv2.THRESH_BINARY)
-    #masks_image = cv2.cvtColor(masks_image, cv2.COLOR_BGR2GRAY)
-    #masks_image = cv2.threshold(masks_image, 128, 255, 0)
-    #img2,masks_contours,hierarchy = cv2.findContours(masks_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    #print(len(masks_contours))
-    exit()
