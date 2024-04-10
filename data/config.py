@@ -261,6 +261,28 @@ trial_quant_eval = dataset_base.copy({
     'label_map' : None
 })
 
+self_supervised_pbr_base_dataset = dataset_base.copy({
+    'name' : 'self_supervised_base',
+    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/supervised_pbr_base/train_annotations.json',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/supervised_pbr_base/val_annotations.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : { 0 : 1, 1 : 2 }
+})
+
+self_supervised_pbr_real_dataset = dataset_base.copy({
+    'name' : 'self_supervised_real',
+    'train_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'train_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/supervised_pbr_ref_aug/train_annotations.json',
+    'valid_images' : '/cluster/project/infk/cvg/heinj/datasets/bop/mvpsp',
+    'valid_info' : '/cluster/project/infk/cvg/heinj/students/kbirgi/BachelorThesis/Annotations/supervised_pbr_ref_aug/val_annotations.json',
+    'has_gt' : True,
+    'class_names' : MEDICAL_CLASSES,
+    'label_map' : { 0 : 1, 1 : 2 }
+})
+
 medical_test_orx_subset = dataset_base.copy({
     'name' : 'medical_test_orx',
     'train_images' : '',
@@ -938,6 +960,23 @@ ssd_amodal_resnet50_20000_config = yolact_base_config.copy({
     }),
 })
 
+ssd_amodal_resnet50_40000_config = yolact_base_config.copy({
+    'name' : 'ssd_amodal',
+    # Dataset stuff
+    'dataset': train_ssd_amodal,
+    'num_classes': len(train_ssd_amodal.class_names) + 1,
+    'max_iter' : 40000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
 medical_all_resnet101_config = yolact_base_config.copy({
     'name' : 'real_resnet101',
     # Dataset stuff
@@ -1124,6 +1163,294 @@ refinement_pbr_aug_hue_all = yolact_base_config.copy({
     #augmentation stuff
     'hue_delta' : 50, # was at 100 for the previous hue iteration, original is 18
     'augment_noise' : True,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    #'ratio_pbr_to_real': 0.5,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    'lr_steps': (25000, 30000, 35000),
+    
+    # Dataset stuff
+    'dataset': refinement_real_all,
+    #'real_dataset': refinement_real_all,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+self_supervised_pbr_base_lre4 = yolact_base_config.copy({
+    'name' : 'self_supervised_pbr_base_lre4',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    #'ratio_pbr_to_real': 0.5,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    'lr_steps': (30000, 35000),
+    
+    # Dataset stuff
+    'dataset': self_supervised_pbr_base_dataset,
+    #'real_dataset': refinement_real_all,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+ref_self_supervised_pbr_base_lre4 = yolact_base_config.copy({
+    'name' : 'refinement_self_supervised_pbr_base_lre4',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    'ratio_pbr_to_real': 0.2,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    'lr_steps': (30000, 35000),
+    
+    # Dataset stuff
+    'real_dataset': self_supervised_pbr_base_dataset,
+    'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+self_supervised_pbr_real_lre4 = yolact_base_config.copy({
+    'name' : 'self_supervised_pbr_real_lre4',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    #'ratio_pbr_to_real': 0.5,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    'lr_steps': (24000, 35000),
+    
+    # Dataset stuff
+    'dataset': self_supervised_pbr_real_dataset,
+    #'real_dataset': refinement_real_all,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 30000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+ref_self_supervised_pbr_ref_lre4 = yolact_base_config.copy({
+    'name' : 'refinement_self_supervised_pbr_real_lre4',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    'ratio_pbr_to_real': 0.3,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    'lr_steps': (24000, 35000), #(25000, 30000, 35000),
+    
+    # Dataset stuff
+    'real_dataset': self_supervised_pbr_real_dataset,
+    'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 30000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+self_supervised_pbr_base = yolact_base_config.copy({
+    'name' : 'self_supervised_pbr_base',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    #'ratio_pbr_to_real': 0.5,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    #'lr_steps': (30000, 35000),
+    
+    # Dataset stuff
+    'dataset': self_supervised_pbr_base_dataset,
+    #'real_dataset': refinement_real_all,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+ref_self_supervised_pbr_base = yolact_base_config.copy({
+    'name' : 'refinement_self_supervised_pbr_base',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    'ratio_pbr_to_real': 0.2,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    #'lr_steps': (30000, 35000),
+    
+    # Dataset stuff
+    'real_dataset': self_supervised_pbr_base_dataset,
+    'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+self_supervised_pbr_real = yolact_base_config.copy({
+    'name' : 'self_supervised_pbr_real',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    #'ratio_pbr_to_real': 0.5,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    #'lr_steps': (30000, 35000),
+    
+    # Dataset stuff
+    'dataset': self_supervised_pbr_real_dataset,
+    #'real_dataset': refinement_real_all,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+ref_self_supervised_pbr_ref = yolact_base_config.copy({
+    'name' : 'refinement_self_supervised_pbr_real',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
+
+    #configs for refinement stuff
+    #'lr': 1e-5, #original is 1e-3
+    'ratio_pbr_to_real': 0.3,
+
+    # For each lr step, what to multiply the lr with
+    # original:
+    'gamma': 0.1,
+    #'lr_steps': (30000, 35000), #(25000, 30000, 35000),
+    
+    # Dataset stuff
+    'real_dataset': self_supervised_pbr_real_dataset,
+    'dataset': train_pbr_random_and_kinect,
+    'num_classes': len(train_pbr_random_and_kinect.class_names) + 1,
+    'max_iter' : 35000,
+    'backbone': resnet50_backbone.copy({
+        'selected_layers': list(range(1, 4)),
+        
+        'pred_scales': yolact_base_config.backbone.pred_scales,
+        'pred_aspect_ratios': yolact_base_config.backbone.pred_aspect_ratios,
+        'use_pixel_scales': True,
+        'preapply_sqrt': False,
+        'use_square_anchors': True, # This is for backward compatability with a bug
+    }),
+})
+
+refinement_pbr_all_no_noise = yolact_base_config.copy({
+    'name' : 'refinement_pbr_all_no_noise',
+    
+    #augmentation stuff
+    'hue_delta' : 18, # was at 100 for the previous hue iteration, original is 18
+    'augment_noise' : False,
 
     #configs for refinement stuff
     #'lr': 1e-5, #original is 1e-3
